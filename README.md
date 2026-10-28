@@ -1,0 +1,28 @@
+# dynamicworld-cells
+
+VRChat ワールド向けセルローダー **Cell Loader (Dynamic World)** のセルデータ配信用リポジトリ。GitHub Pages で公開し、ワールド内のローダーが実行時に読み込む。
+
+開発本体（仕組み・仕様）は別リポジトリ `hyde4280/dynamicworld`（private）側。セルデータは VRChat クライアントが認証なしで取得するため、こちらは public にしている。
+
+## URL 規格
+
+セル 1 件 = 2 ファイル（OBJ + アトラス PNG）。パスは連番で固定し、差し替えは同パスの上書きで行う。
+
+| セル | メッシュ | テクスチャ |
+|---|---|---|
+| cell001 | `https://hyde4280.github.io/dynamicworld-cells/cells/cell001.obj` | `https://hyde4280.github.io/dynamicworld-cells/cells/cell001.png` |
+
+- `*.github.io` は VRChat の String / Image Loading の許可リスト入りのため、「Allow Untrusted URLs」なしで読み込める。
+- セル形式（10m 立方・床 y=0・入口は南面中央・マニフェストは OBJ ヘッダーコメント）の仕様は、本体リポジトリのプロトタイプ仕様 v0 に基づく。パッケージ公開時に本リポジトリにも仕様を同梱する予定。
+
+## カタログ
+
+| ID | 名前 | 状態 |
+|---|---|---|
+| cell001 | hajimari-no-hokora（はじまりの祠） | OBJ 投入済み。**PNG は未投入**（`tools/gen_cell001.py` で生成してコミットする必要あり） |
+
+## セルの追加方法
+
+1. 形式に従って `cells/cellNNN.obj` と `cells/cellNNN.png` を用意する（NNN は連番）。
+2. このリポジトリにコミットし、カタログ表に行を足す。
+3. ワールド側のローダーに宣言済みの URL 枠がある番号までが読み込み対象になる。
