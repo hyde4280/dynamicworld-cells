@@ -1,0 +1,32 @@
+# セルデータの利用条件 / Terms of Use for Cell Data
+
+本リポジトリ（dynamicworld-cells）に含まれるセルデータ（OBJ、テクスチャ、その他のデータファイル）は、hyde4280 の著作物です。技術的に誰でも取得できる形で公開していますが、利用は以下の範囲に限ります。
+
+## 許可されること
+
+- VRChat 内で Cell Loader（Dynamic World）等の対応ローダーを通じて読み込み、ワールド内で閲覧すること。
+- セル形式やローディングの仕組みを学ぶ目的で、個人の環境で閲覧・検証すること。
+
+## 許可なく行えないこと
+
+- セルデータの複製・再配布（ミラー、再アップロード、ファイル共有など）。
+- セルデータを改変しての公開・配布。
+- セルデータの全部または一部を、他のワールド・作品・アセットに組み込んで利用すること。
+- 商用利用。
+
+上記を行いたい場合は、事前に著作権者（hyde4280）へ連絡し、許可を得てください。
+
+## 出典表記
+
+セルをスクリーンショットや動画等で紹介する場合は、出典として
+"Cell data: hyde4280 / dynamicworld-cells" の表記を歓迎します（必須ではありません）。
+
+## 備考
+
+- セル単位で個別の条件が付く場合は、そのセルのマニフェスト（OBJ ヘッダー）やカタログに明記します。個別条件がある場合はそちらが優先します。
+- 本リポジトリのツール類（`tools/` 配下のスクリプト等）についても、別途の明記がない限り本条件に準じます。
+- 仕組み自体（Cell Loader パッケージ）のライセンスとは別物です。パッケージ側のライセンスは本体リポジトリ側で定めます。
+
+---
+
+Summary (English): The cell data in this repository is © hyde4280. Loading and viewing it in VRChat through a compatible loader is allowed. Copying, redistribution, modification, incorporation into other works/worlds, and commercial use are not allowed without prior permission. Per-cell terms, if any, are noted in the cell manifest or catalog and take precedence.
