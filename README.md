@@ -23,7 +23,7 @@ VRChat ワールド向けセルローダー **Cell Loader (Dynamic World)** の�
 
 | ID | 名前 | 状態 |
 |---|---|---|
-| cell001 | hajimari-no-hokora（はじまりの祠） | OBJ 投入済み。**PNG は未投入**（`tools/gen_cell001.py` で生成してコミットする必要あり） |
+| cell001 | hajimari-no-hokora（はじまりの祠） | OBJ・PNG 投入済み |
 
 ## セルの追加方法
 
