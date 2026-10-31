@@ -28,7 +28,7 @@ VRChat ワールド向けセルローダー **Cell Loader (Dynamic World)** の�
 | cell001 | hajimari-no-hokora（はじまりの祠） | OBJ・PNG（512×512）とも投入済み。Pages で配信中（2026-10-31 確認）。252 tris |
 | cell002 | niwa（夕の庭） | OBJ 配信中。PNG（1024×1024）は生成済み・ローカルコミット待ち。5,334 tris |
 | cell003 | iseki（昼の遺跡） | OBJ 配信中。PNG（1024×1024）は生成済み・ローカルコミット待ち。20,090 tris |
-| cell004 | suisho-doukutsu（水晶洞窟） | OBJ 配信中。PNG（1024×1024）は生成済み・ローカルコミット待ち。53,034 tris（上限探り用。コライダーは中心部と岩柱のみ） |
+| cell004 | suisho-doukutsu（水晶洞窟） | OBJ・PNG とも生成済み・ローカルコミット待ち（OBJ が約 5.9MB で Muse の投入上限超過のため）。53,034 tris（上限探り用。コライダーは中心部と岩柱のみ） |
 
 ## セルの追加方法
 
