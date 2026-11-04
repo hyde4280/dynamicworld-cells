@@ -2,6 +2,7 @@
 # cell.name: niwa
 # cell.version: 0
 # cell.ambient: 1.0,0.88,0.7,0.55
+# cell.lightvolume: 1.0,0.88,0.7,0.55
 # cell.keylight: 1.0,0.75,0.5,1.8 ; -4,5,-1
 # collider: -3.1,1.0,3.1, 0.5,2.0,0.5
 # collider: -1.3,0.45,-2.6, 0.5,0.9,0.5
