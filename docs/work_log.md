@@ -23,3 +23,9 @@ cell002 / cell003 の OBJ は本コミットで配信開始。PNG（各 1024×10
 - リポジトリを作成し、初期ファイルを投入（commit c0e3403b）: README（URL 規格とカタログ）、index.html、`.nojekyll`、`cells/cell001.obj`、`tools/gen_cell001.py`。
 - GitHub Pages を有効化し、カタログページと cell001.obj が配信されることを確認。
 - セルデータの利用条件として `LICENSE` を追加し、README に利用条件の節を設けた（commit f8d973bd）。暗号化は行わず、条件はライセンス表記で担保する方針。
+
+## 2026-11-04 Light Volume 用マニフェスト行の追加
+
+- cell001〜004 のマニフェストに `# cell.lightvolume: r,g,b,intensity` を追加(値は各セルの ambient と同値で明示。ローダー側は省略時 ambient で代用し、この行がある場合に優先する)。
+- ジェネレータ(tools/gen_cell001〜004.py)に反映し、cell001〜003.obj は再生成して main へ反映済み(Pages で配信確認)。cell004.obj は従来通りサイズ制限のためローカルコミット待ち(ジェネレータには反映済み)。
+- ローダー側の対応は dynamicworld の PR #3(Integrations/LightVolumes の CellLightVolumeDriver 経由)。
