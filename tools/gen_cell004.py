@@ -110,6 +110,7 @@ MANIFEST = [
     "# cell.name: suisho-doukutsu",
     "# cell.version: 0",
     "# cell.ambient: 0.5,0.62,0.85,0.55",
+    "# cell.lightvolume: 0.5,0.62,0.85,0.55",
     "# cell.keylight: 0.6,0.85,1.0,2.4 ; 0,4.5,0.5",
     "# collider: 0,1.2,0.6, 2.6,2.4,2.6",
     "# collider: -3.75,1.2,-3.7, 1.7,2.4,1.7",

@@ -2,6 +2,7 @@
 # cell.name: hajimari-no-hokora
 # cell.version: 0
 # cell.ambient: 1.0,0.95,0.85,0.6
+# cell.lightvolume: 1.0,0.95,0.85,0.6
 # cell.keylight: 1.0,0.8,0.55,2.0 ; 3,6,-2
 # collider: 0,0.8,2.5, 2.4,1.6,1.2
 # collider: -2.5,0.3,0.5, 0.4,0.6,0.4

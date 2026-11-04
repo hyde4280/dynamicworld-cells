@@ -2,6 +2,7 @@
 # cell.name: iseki
 # cell.version: 0
 # cell.ambient: 1.0,0.98,0.92,0.7
+# cell.lightvolume: 1.0,0.98,0.92,0.7
 # cell.keylight: 1.0,0.95,0.82,2.2 ; 2,7,-3
 # collider: -2.7,1.6,-2.0, 1.0,3.2,1.0
 # collider: -2.7,0.7,0.8, 1.0,1.4,1.0
