@@ -1,0 +1,54 @@
+name: decode-assets
+
+# cells/ 配下のバイナリ・大容量ファイルは、Muse の GitHub 投入経路が
+# UTF-8 テキスト専用のため、そのままではコミットできない。
+# 代替経路として:
+#   - バイナリは Base64 化した `*.b64` テキストで投入し、ここで復元する
+#   - 投入上限を超えるテキストは `*.part01`, `*.part02`, ... に分割して
+#     投入し、ここで結合する
+# 復元結果はこのワークフローが bot コミットとして main へ戻す。
+# 復元対象 (PNG / OBJ 本体) はトリガーパスに含まれないため自己再実行はしない。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cells/*.b64'
+      - 'cells/*.part*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  decode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decode .b64 and join .part files
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          for f in cells/*.b64; do
+            out="${f%.b64}"
+            base64 --decode "$f" > "$out"
+            echo "decoded: $f -> $out"
+          done
+          for first in cells/*.part01; do
+            out="${first%.part01}"
+            cat "$out".part[0-9][0-9] > "$out"
+            echo "joined: $out.part?? -> $out"
+          done
+
+      - name: Commit decoded assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cells/
+          if git diff --cached --quiet; then
+            echo "no changes to commit"
+          else
+            git commit -m "Decode binary/split assets via Actions [skip ci]"
+            git push
+          fi
