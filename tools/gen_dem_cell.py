@@ -39,11 +39,15 @@ Costs at the default --grid 128 (same order as cell003):
   shader/displacement terrain has no collider (a coarse stepped
   collider grid is a separate, later option).
 
-cell005 "fujisan" production (2026-11-05): the summit sits near a tile
-corner at z13, so the four tiles x=7252..7253, y=3234..3235 were
-stitched into a 512x512 canvas and a summit-centred 256x256 window was
-cropped from it; that crop is the input PNG. Resulting height range
-2087.7..3769.7 m, fitted to 8 m peak height by default. Source data:
+cell005 "fujisan" production (2026-11-05; regenerated 2026-11-06): the
+summit sits near a tile corner at z13, so the four tiles x=7252..7253,
+y=3234..3235 were stitched into a 512x512 canvas and a summit-centred
+256x256 window was cropped from it; that crop is the input PNG. The crop
+covers ~3.99 km x 3.98 km on the ground. First version fitted the height
+range 2087.7..3769.7 m to 8 m, which exaggerated the vertical scale
+~1.9x over the horizontal and looked too sharp in-world; the current
+version uses --fit-height 4.2 (true scale for this crop) plus --skirt
+(perimeter walls down to y=0 so the hem lands on the floor). Source data:
 GSI (Geospatial Information Authority of Japan) elevation tiles,
 https://cyberjapandata.gsi.go.jp/xyz/dem_png/{z}/{x}/{y}.png
 """
@@ -115,7 +119,8 @@ def hypsometric(t):
     return stops[-1][1]
 
 
-def build(name, heights, grid, fit_height, vertical_scale, outdir):
+def build(name, heights, grid, fit_height, vertical_scale, outdir,
+          skirt=False):
     samples = downsample(heights, grid)
     flat = [v for row in samples for v in row]
     h_min, h_max = min(flat), max(flat)
@@ -157,6 +162,42 @@ def build(name, heights, grid, fit_height, vertical_scale, outdir):
             d = c + 1
             faces.append((a, c, d))
             faces.append((a, d, b))
+
+    if skirt:
+        # Perimeter skirt: vertical walls from the border down to y=0, so
+        # the heightfield sheet lands on the floor all the way around
+        # instead of floating at border-terrain height. The terrain itself
+        # is untouched. Loop order N -> E -> S -> W keeps the segment
+        # winding outward with triangles (P, P', Q') / (P, Q', Q).
+        loop = ([(0, i) for i in range(grid + 1)]
+                + [(j, grid) for j in range(1, grid + 1)]
+                + [(grid, i) for i in range(grid - 1, -1, -1)]
+                + [(j, 0) for j in range(grid - 1, 0, -1)])
+        top_idx = [j * (grid + 1) + i for (j, i) in loop]
+        n_pts = len(loop)
+        out_seg = []
+        for k in range(n_pts):
+            x0, _, z0 = verts[top_idx[k]]
+            x1, _, z1 = verts[top_idx[(k + 1) % n_pts]]
+            dx, dz = x1 - x0, z1 - z0
+            ln = math.hypot(dx, dz) or 1.0
+            out_seg.append((-dz / ln, dx / ln))  # outward (nx, nz)
+        bot_idx = []
+        for k in range(n_pts):
+            x, _, z = verts[top_idx[k]]
+            nx = out_seg[k - 1][0] + out_seg[k][0]
+            nz = out_seg[k - 1][1] + out_seg[k][1]
+            ln = math.hypot(nx, nz) or 1.0
+            verts.append((x, 0.0, z))
+            uvs.append(uvs[top_idx[k]])
+            norms.append((nx / ln, 0.0, nz / ln))
+            bot_idx.append(len(verts) - 1)
+        for k in range(n_pts):
+            k2 = (k + 1) % n_pts
+            p, q = top_idx[k] + 1, top_idx[k2] + 1
+            p2, q2 = bot_idx[k] + 1, bot_idx[k2] + 1
+            faces.append((p, p2, q2))
+            faces.append((p, q2, q))
 
     manifest = [
         f"# cell.name: {name}",
@@ -229,6 +270,8 @@ def main():
     ap.add_argument("--grid", type=int, default=128)
     ap.add_argument("--fit-height", type=float, default=8.0)
     ap.add_argument("--vertical-scale", type=float, default=None)
+    ap.add_argument("--skirt", action="store_true",
+                    help="add perimeter walls down to y=0")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
@@ -240,7 +283,7 @@ def main():
             ap.error("give a DEM PNG, or --selftest")
         heights, nodata = decode_gsi_dem(Image.open(args.png).convert("RGB"))
         r = build(args.name, heights, args.grid, args.fit_height,
-                  args.vertical_scale, args.out)
+                  args.vertical_scale, args.out, skirt=args.skirt)
         print(f"nodata pixels replaced with tile minimum: {nodata}")
     print(f"tris={r['tris']} verts={r['verts']} obj_lines={r['lines']} "
           f"obj_bytes={r['obj_bytes']} height_range={r['h_min']:.1f}.."
