@@ -160,8 +160,12 @@ def build(name, heights, grid, fit_height, vertical_scale, outdir,
             b = a + 1
             c = a + grid + 1
             d = c + 1
-            faces.append((a, c, d))
-            faces.append((a, d, b))
+            # Winding must match cellgen.py: CCW seen from the normal
+            # side, i.e. the geometric normal points up like the vn
+            # above. (a, c, d)/(a, d, b) pointed down and the cell
+            # rendered inside-out in-world; fixed 2026-11-06.
+            faces.append((a, d, c))
+            faces.append((a, b, d))
 
     if skirt:
         # Perimeter skirt: vertical walls from the border down to y=0, so
