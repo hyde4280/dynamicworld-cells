@@ -36,6 +36,7 @@ class Cave:
     def __init__(self):
         self.b = CellBuilder(REGIONS)
         self.colliders = []
+        self.portals = []   # (face, x, y, z): interact floor points for stacked cells
 
     # -- pieces ---------------------------------------------------------
     def rock_block(self, x0, x1, z0, z1, h=4.0, collider=True):
@@ -113,6 +114,7 @@ class Cave:
             f"# cell.keylight: {keylight}",
         ]
         lines += [f"# door: {d}" for d in doors]
+        lines += [f"# portal: {p[0]}, {p[1]},{p[2]},{p[3]}" for p in self.portals]
         for c in self.colliders:
             line = f"# collider: {c[0]},{c[1]},{c[2]}, {c[3]},{c[4]},{c[5]}"
             if len(c) >= 9:   # optional Euler rotation (slopes)
@@ -280,6 +282,7 @@ def cell010():
     c.colliders.append((-1.2, 4.5, -0.9, 0.2, 9.0, 4.8))                       # F3 west side
     c.colliders.append((1.2, 4.5, -0.9, 0.2, 9.0, 4.8))                        # F3 east side
 
+    c.portals.append(("U", 0.0, 8.84, 1.2))    # interact point near the top of F3
     c.stalactites([(-2.0, -3.9), (2.0, -3.9)], ceil_y=5.6)
     c.crystals(-1.9, -2.0)
     c.crystals(1.9, -2.0)
@@ -319,6 +322,7 @@ def cell011():
     b.box((0, H + 0.15, 0), (10, 0.3, 10), "rock")
     b.box((0, 0.011, 4.0), (3.0, 0.022, 2.0), "path")
     b.box((0, 0.011, -4.0), (3.0, 0.022, 2.0), "path")
+    c.portals.append(("D", 0.0, 0.0, 2.4))     # arrival / interact point beside the hole
     c.stalactites([(-3.2, 2.8), (3.2, -2.8), (-3.0, -3.0)], ceil_y=H)
     c.crystals(-3.4, 0.0)
     c.rubble([(3.4, 2.4), (-2.6, -2.2)])
