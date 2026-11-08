@@ -45,9 +45,13 @@ def validate(path):
     cols = [m for m in manifest if m.startswith("# collider:")]
     if len(cols) > 16:
         errs.append(f"colliders {len(cols)} > pool 16")
+    doors = [m.split(":", 1)[1].strip() for m in manifest if m.startswith("# door:")]
+    for d in doors:
+        if d.split(",")[0].strip() not in ("N", "E", "S", "W", "U", "D"):
+            errs.append(f"bad door face: {d}")
     if not any(m.startswith("# cell.name:") for m in manifest):
         errs.append("no cell.name")
-    print(f"{path}: tris={len(faces)} verts={n} colliders={len(cols)} "
+    print(f"{path}: tris={len(faces)} verts={n} colliders={len(cols)} doors={doors} "
           f"y[{min(ys):.2f},{max(ys):.2f}] {'OK' if not errs else 'ERRORS: ' + '; '.join(errs[:5])}")
     return not errs
 

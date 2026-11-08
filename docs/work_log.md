@@ -62,3 +62,16 @@ cell002 / cell003 の OBJ は本コミットで配信開始。PNG（各 1024×10
 - cell001〜004 のマニフェストに `# cell.lightvolume: r,g,b,intensity` を追加(値は各セルの ambient と同値で明示。ローダー側は省略時 ambient で代用し、この行がある場合に優先する)。
 - ジェネレータ(tools/gen_cell001〜004.py)に反映し、cell001〜003.obj は再生成して main へ反映済み(Pages で配信確認)。cell004.obj は従来通りサイズ制限のためローカルコミット待ち(ジェネレータには反映済み)。
 - ローダー側の対応は dynamicworld の PR #3(Integrations/LightVolumes の CellLightVolumeDriver 経由)。
+
+## 2026-11-08 基本パターンセル（洞窟系）cell006〜010 を追加
+
+接続・生成仕様の検討（本体側 MULTI_CELL_DESIGN.md「接続と生成（2026-11-08 の検討）」）を受けて、扉パターンの基本 5 種を洞窟系ダンジョンの見た目で作成。生成は `tools/gen_basic_cells.py`（5 セル共通）、検証は `tools/check_cell.py`（`# door:` 行の検査を追加）。
+
+- 設計：10m 四方をそのまま部屋にせず、大半を岩盤マスで埋めて幅 3m の通路を掘る形（通路多め）。扉の開口は面中央 2m × 3m で、脇を岩と木枠で絞る。天井高 4m（階段部屋のみ 6m）。
+- 扉はマニフェストの `# door:` 行で宣言（1 面 1 行）。ローダー側はまだ door 行を解釈しない（多スロット化の作業はこれから）。ワールド側の URL 枠は 20 件宣言済みのため、単体表示の対象にはできる。
+- cell006「jujiro-doukutsu」十字：扉 N/E/S/W、816 tris、コライダー 12。
+- cell007「teijiro-doukutsu」T 字：扉 N/E/S、580 tris、コライダー 9。
+- cell008「ipponmichi-doukutsu」I 字（一本道）：扉 N/S、472 tris、コライダー 6。
+- cell009「magarimichi-doukutsu」L 字：扉 S/E、508 tris、コライダー 9。
+- cell010「kaidan-no-doukutsu」階段部屋：扉 S＋`U, stair`、760 tris、コライダー 16（プール上限いっぱい）。東壁沿いの 8 段（各段がそのままコライダー）で y=3 の踊り場へ上がり、橋を渡って中央台に出る。真上の天井（y=6）に 2m × 2m のハッチ。
+- 検証：check_cell 全セル OK（範囲・UV・コライダー数・扉の面表記）。コライダーから歩行可能マップを起こして各パターンの形状が意図通りかも確認した。
