@@ -288,8 +288,46 @@ def cell010():
                          "0.85,0.92,1.0,1.9 ; 0,7.0,-1", ["S", "U, stair"])
 
 
+def cell011():
+    """Upper landing room for the 9 m stair tower (cell010).
+
+    Floor with a 3x3 hole at the centre (the D opening: the top of cell010's
+    third ramp ends flush with this floor, y=0), a wooden rim around the hole,
+    and N/S doors. Floor colliders are provided by the host slot, which swaps
+    its full floor box for four boxes around the hole when the cell declares
+    a D door."""
+    c = Cave()
+    b = c.b
+    H = 4.0
+    # floor around the hole (visual)
+    b.box((0, -0.05, 3.25), (10, 0.1, 3.5), "floor")
+    b.box((0, -0.05, -3.25), (10, 0.1, 3.5), "floor")
+    b.box((3.25, -0.05, 0), (3.5, 0.1, 3.0), "floor")
+    b.box((-3.25, -0.05, 0), (3.5, 0.1, 3.0), "floor")
+    for sx, sz, w, d in ((0, 1.6, 3.2, 0.2), (0, -1.6, 3.2, 0.2),
+                         (1.6, 0, 0.2, 3.0), (-1.6, 0, 0.2, 3.0)):
+        b.box((sx, 0.15, sz), (w, 0.3, d), "wood")   # rim around the hole
+    b.box((0, -0.12, 0), (0.5, 0.04, 0.5), "glow")      # faint glow in the hole
+    # perimeter walls with N/S door gaps; ceiling
+    c.wall(4.9, 0, 0.2, 10, h=H)
+    c.wall(-4.9, 0, 0.2, 10, h=H)
+    for z in (4.9, -4.9):
+        c.wall(-3.25, z, 3.5, 0.2, h=H)
+        c.wall(3.25, z, 3.5, 0.2, h=H)
+    c.door("N")
+    c.door("S")
+    b.box((0, H + 0.15, 0), (10, 0.3, 10), "rock")
+    b.box((0, 0.011, 4.0), (3.0, 0.022, 2.0), "path")
+    b.box((0, 0.011, -4.0), (3.0, 0.022, 2.0), "path")
+    c.stalactites([(-3.2, 2.8), (3.2, -2.8), (-3.0, -3.0)], ceil_y=H)
+    c.crystals(-3.4, 0.0)
+    c.rubble([(3.4, 2.4), (-2.6, -2.2)])
+    return c, c.manifest("kaidan-no-ue", "0.6,0.66,0.8,0.55",
+                         "0.85,0.92,1.0,1.7 ; 0,3.2,0", ["N", "S", "D, stair"])
+
+
 CELLS = [
-    (6, cell006), (7, cell007), (8, cell008), (9, cell009), (10, cell010),
+    (6, cell006), (7, cell007), (8, cell008), (9, cell009), (10, cell010), (11, cell011),
 ]
 
 if __name__ == "__main__":
