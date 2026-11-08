@@ -282,7 +282,7 @@ def cell010():
     c.colliders.append((-1.2, 4.5, -0.9, 0.2, 9.0, 4.8))                       # F3 west side
     c.colliders.append((1.2, 4.5, -0.9, 0.2, 9.0, 4.8))                        # F3 east side
 
-    c.portals.append(("U", 0.0, 8.84, 1.2))    # interact point near the top of F3
+    c.portals.append(("U", 0.0, 8.09, 0.0))    # interact point on F3 (kept below pitch-0.3 so G stays in this cell)
     c.stalactites([(-2.0, -3.9), (2.0, -3.9)], ceil_y=5.6)
     c.crystals(-1.9, -2.0)
     c.crystals(1.9, -2.0)
