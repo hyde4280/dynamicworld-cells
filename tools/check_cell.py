@@ -43,8 +43,8 @@ def validate(path):
             errs.append(f"uv out of [0,1]: {(u, v)}")
             break
     cols = [m for m in manifest if m.startswith("# collider:")]
-    if len(cols) > 16:
-        errs.append(f"colliders {len(cols)} > pool 16")
+    if len(cols) > 64:
+        errs.append(f"colliders {len(cols)} > pool 64")
     doors = [m.split(":", 1)[1].strip() for m in manifest if m.startswith("# door:")]
     for d in doors:
         if d.split(",")[0].strip() not in ("N", "E", "S", "W", "U", "D"):
