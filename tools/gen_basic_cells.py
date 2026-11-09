@@ -32,26 +32,63 @@ def make_atlas(path, seed):
     p.save(path)
 
 
+def _rect_subtract(rect, other):
+    """rect minus other (axis-aligned, (x0,x1,z0,z1)); returns sub-rects."""
+    x0, x1, z0, z1 = rect
+    a0, a1, b0, b1 = other
+    ix0, ix1 = max(x0, a0), min(x1, a1)
+    iz0, iz1 = max(z0, b0), min(z1, b1)
+    if ix0 >= ix1 or iz0 >= iz1:
+        return [rect]
+    out = []
+    if x0 < ix0:
+        out.append((x0, ix0, z0, z1))
+    if ix1 < x1:
+        out.append((ix1, x1, z0, z1))
+    if z0 < iz0:
+        out.append((ix0, ix1, z0, iz0))
+    if iz1 < z1:
+        out.append((ix0, ix1, iz1, z1))
+    return out
+
+
 class Cave:
     def __init__(self):
         self.b = CellBuilder(REGIONS)
         self.colliders = []
-        self.portals = []   # (face, x, y, z): interact floor points for stacked cells
+        self._corridor_rects = []
 
     # -- pieces ---------------------------------------------------------
     def rock_block(self, x0, x1, z0, z1, h=4.0, collider=True):
         cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
-        self.b.box((cx, h / 2, cz), (x1 - x0, h, z1 - z0), "rock")
+        self.b.box((cx, h / 2, cz), (x1 - x0, h, z1 - z0), "rock",
+                   skip=("bottom",))
         if collider:
             self.colliders.append((cx, h / 2, cz, x1 - x0, h, z1 - z0))
 
     def wall(self, cx, cz, sx, sz, h=4.0):
-        self.b.box((cx, h / 2, cz), (sx, h, sz), "rock")
+        self.b.box((cx, h / 2, cz), (sx, h, sz), "rock", skip=("bottom",))
 
     def corridor(self, x0, x1, z0, z1, ceil_y=4.0):
-        cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
-        self.b.box((cx, 0.011, cz), (x1 - x0, 0.022, z1 - z0), "path")
-        self.b.box((cx, ceil_y + 0.15, cz), (x1 - x0, 0.3, z1 - z0), "rock")
+        # Tile against previously placed corridors: arms overlap at
+        # junctions (cross/T/L), and the duplicated path/ceiling faces
+        # in the junction square Z-fight. Subtract placed rects first.
+        rects = [(x0, x1, z0, z1)]
+        for placed in self._corridor_rects:
+            nxt = []
+            for r in rects:
+                nxt += _rect_subtract(r, placed)
+            rects = nxt
+        self._corridor_rects.append((x0, x1, z0, z1))
+        for (a0, a1, b0, b1) in rects:
+            cx, cz = (a0 + a1) / 2, (b0 + b1) / 2
+            # path slab: top face only. Its 2.2cm side slivers are
+            # coplanar with the neighbouring rock/door faces and
+            # Z-fight in thin strips; they carry no visible surface.
+            self.b.box((cx, 0.011, cz), (a1 - a0, 0.022, b1 - b0), "path",
+                       skip=("bottom", "px", "nx", "pz", "nz"))
+            self.b.box((cx, ceil_y + 0.15, cz), (a1 - a0, 0.3, b1 - b0),
+                       "rock")
 
     def door(self, face):
         """2m x 3m opening dressing at a face centre: rock side segments
@@ -63,9 +100,11 @@ class Cave:
             zp = 4.8 if face == "N" else -4.8
             for s in (-1, 1):
                 cx = s * 1.25
-                b.box((cx, 1.5, z), (0.5, 3.0, 0.3), "rock")
+                b.box((cx, 1.5, z), (0.5, 3.0, 0.3), "rock", skip=("bottom",))
                 self.colliders.append((cx, 1.5, z, 0.5, 3.0, 0.3))
-                b.box((s * 1.3, 1.5, zp), (0.22, 3.0, 0.3), "wood")
+                # post top at 3.12, not 3.0: coplanar with the rock
+                # segment tops it Z-fought (both up-facing at y=3.0)
+                b.box((s * 1.3, 1.56, zp), (0.22, 3.12, 0.3), "wood", skip=("bottom",))
             b.box((0, 3.3, z), (3.0, 0.6, 0.3), "wood")
             b.box((0, 3.85, z), (3.0, 0.3, 0.3), "rock")
         else:
@@ -73,9 +112,9 @@ class Cave:
             xp = 4.8 if face == "E" else -4.8
             for s in (-1, 1):
                 cz = s * 1.25
-                b.box((x, 1.5, cz), (0.3, 3.0, 0.5), "rock")
+                b.box((x, 1.5, cz), (0.3, 3.0, 0.5), "rock", skip=("bottom",))
                 self.colliders.append((x, 1.5, cz, 0.3, 3.0, 0.5))
-                b.box((xp, 1.5, s * 1.3), (0.3, 3.0, 0.22), "wood")
+                b.box((xp, 1.56, s * 1.3), (0.3, 3.12, 0.22), "wood", skip=("bottom",))
             b.box((x, 3.3, 0), (0.3, 0.6, 3.0), "wood")
             b.box((x, 3.85, 0), (0.3, 0.3, 3.0), "rock")
 
@@ -103,7 +142,7 @@ class Cave:
                           squash=(1, 0.6, 1), jitter=0.3, rng=rng)
 
     def floor_slab(self):
-        self.b.box((0, -0.05, 0), (10, 0.1, 10), "floor")
+        self.b.box((0, -0.05, 0), (10, 0.1, 10), "floor", skip=("bottom",))
 
     def manifest(self, name, ambient, keylight, doors):
         lines = [
@@ -114,12 +153,8 @@ class Cave:
             f"# cell.keylight: {keylight}",
         ]
         lines += [f"# door: {d}" for d in doors]
-        lines += [f"# portal: {p[0]}, {p[1]},{p[2]},{p[3]}" for p in self.portals]
-        for c in self.colliders:
-            line = f"# collider: {c[0]},{c[1]},{c[2]}, {c[3]},{c[4]},{c[5]}"
-            if len(c) >= 9:   # optional Euler rotation (slopes)
-                line += f", {c[6]},{c[7]},{c[8]}"
-            lines.append(line)
+        lines += [f"# collider: {c[0]},{c[1]},{c[2]}, {c[3]},{c[4]},{c[5]}"
+                  for c in self.colliders]
         return lines
 
 
@@ -196,142 +231,56 @@ def cell009():
                          "1.0,0.72,0.42,1.7 ; 0,3.4,-1", ["S", "E"])
 
 
-def ramp_collider(x, z0, y0, z1, y1, width, thick=0.3):
-    """Sloped box whose top surface runs from (z0,y0) to (z1,y1) along the lane
-    at x (walkable surface for a stair that is visual-only). Returns the 9-value
-    collider tuple (center, size, euler) used by `# collider:` lines."""
-    import math
-    dz, dy = z1 - z0, y1 - y0
-    length = math.hypot(dz, dy)
-    theta = math.degrees(math.atan2(abs(dy), abs(dz)))   # slope angle, 0..90
-    # Unity: a negative X rotation lifts the +z end, a positive one the -z end.
-    # Keep |rx| < 90 so the box is never flipped (its up vector stays upward).
-    rx = -theta if dz > 0 else theta
-    a = math.radians(rx)
-    up = (0.0, math.cos(a), math.sin(a))       # rotated local up (surface normal)
-    mx, my, mz = x, (y0 + y1) / 2, (z0 + z1) / 2
-    cx, cy, cz = mx - up[0] * thick / 2, my - up[1] * thick / 2, mz - up[2] * thick / 2
-    return (round(cx, 4), round(cy, 4), round(cz, 4),
-            width, thick, round(length, 4), round(rx, 3), 0, 0)
-
-
 def cell010():
-    """Stair tower for a 9 m vertical pitch (3 layers x 3 m).
-
-    Three cave ramps (visually 24 fine steps of 0.125 m rise x 0.2 m tread,
-    2.4 m wide, so they read as a slope), each lifting 3 m, with a landing
-    between them:
-      F1 west lane  z -3.3 -> +1.5   y 0 -> 3   (north)
-      landing A     z +1.5 -> +4.8   y 3
-      F2 east lane  z +1.5 -> -3.3   y 3 -> 6   (south)
-      landing B     z -3.3 -> -4.8   y 6
-      F3 centre     z -3.3 -> +1.5   y 6 -> 9   (north, through the 3x3 hole)
-    Walkable surfaces are tilted boxes (one per ramp); there are no step colliders.
-    The ceiling (y 8.5-8.8) has a 3x3 hole at the cell centre; the upper cell's
-    floor (world y 9) has the matching hole and F3 ends flush with it."""
     c = Cave()
     b = c.b
     c.floor_slab()
-    H = 9.0
-    TREAD, RISE, N = 0.2, 0.125, 24
-    # perimeter walls (visual; the host slot guards the rim)
-    c.wall(0, 4.9, 10, 0.2, h=H)                # north
-    c.wall(4.9, 0, 0.2, 10, h=H)                # east
-    c.wall(-4.9, 0, 0.2, 10, h=H)               # west
-    c.wall(-3.25, -4.9, 3.5, 0.2, h=H)          # south, west of the door
-    c.wall(3.25, -4.9, 3.5, 0.2, h=H)           # south, east of the door
-    b.box((0, 6.5, -4.9), (3.0, 5.0, 0.2), "rock")   # south, above the door lintel
+    H = 6.0
+    # rock masses (ground plan; flight and platforms carve the east/north)
+    c.rock_block(-5, -1.6, -0.5, 5, h=H)       # north-west mass
+    c.rock_block(-5, -1.5, -5, -0.5, h=H)      # south-west mass
+    c.rock_block(2.4, 5, 3.4, 5, h=H)          # north-east mass
+    # perimeter walls where masses do not reach the rim
+    c.wall(0.4, 4.9, 4.0, 0.2, h=H)            # north, over the lower pocket
+    c.wall(4.9, 2.6, 0.2, 1.6, h=H)            # east, beside the landing
+    c.wall(3.25, -4.9, 3.5, 0.2, h=H)          # south, east of the door
+    # worn path: entry corridor and the pocket under the platform
+    c.b.box((0, 0.011, -2.75), (3.0, 0.022, 4.5), "path")
+    c.b.box((0.4, 0.011, 3.2), (4.0, 0.022, 3.4), "path")
+    # stair flight along the east wall: 8 solid steps, y0 -> y3, S -> N
+    for i in range(8):
+        top = (i + 1) * 0.375
+        zc = -4.2 + (i + 0.5) * 0.75
+        b.box((3.6, top / 2, zc), (2.4, top, 0.75), "floor")
+        c.colliders.append((3.6, top / 2, zc, 2.4, top, 0.75))
+    # landing (north) + bridge + centre platform under the hatch, all y3
+    b.box((1.9, 2.8, 2.6), (5.8, 0.4, 1.6), "floor")
+    c.colliders.append((1.9, 2.8, 2.6, 5.8, 0.4, 1.6))
+    b.box((0, 2.8, 0.05), (3.4, 0.4, 3.5), "floor")
+    c.colliders.append((0, 2.8, 0.05, 3.4, 0.4, 3.5))
+    b.box((0, 1.3, -1.2), (0.8, 2.6, 0.8), "rock")   # platform pillar
+    c.colliders.append((0, 1.3, -1.2, 0.8, 2.6, 0.8))
+    b.box((-1.3, 1.3, 2.9), (0.6, 2.6, 0.6), "rock")  # landing pillar (visual only)
+    # ceiling at y6 with a 2m x 2m hatch over the centre platform
+    b.box((0, H + 0.15, 3.0), (10, 0.3, 4.0), "rock")
+    b.box((0, H + 0.15, -3.0), (10, 0.3, 4.0), "rock")
+    b.box((3.0, H + 0.15, 0), (4.0, 0.3, 2.0), "rock")
+    b.box((-3.0, H + 0.15, 0), (4.0, 0.3, 2.0), "rock")
+    for sx, sz, w, d in ((0, 1.1, 2.4, 0.25), (0, -1.1, 2.4, 0.25),
+                         (1.1, 0, 0.25, 2.4), (-1.1, 0, 0.25, 2.4)):
+        b.box((sx, H - 0.12, sz), (w, 0.25, d), "wood")
+    b.box((0, H - 0.02, 0), (0.5, 0.04, 0.5), "glow")
     c.door("S")
-    # worn path: entry strip under landing B
-    b.box((0, 0.011, -4.05), (9.6, 0.022, 1.5), "path")
-
-    def flight(xc, z_start, direction, y_base):
-        """Solid fine steps from the floor; direction +1 north / -1 south."""
-        for i in range(N):
-            top = y_base + (i + 1) * RISE
-            zc = z_start + direction * (i + 0.5) * TREAD
-            b.box((xc, top / 2, zc), (2.4, top, TREAD), "floor")
-
-    flight(-3.6, -3.3, +1, 0.0)    # F1
-    flight(3.6, 1.5, -1, 3.0)      # F2
-    flight(0.0, -3.3, +1, 6.0)     # F3
-    # landing A (y=3) over a solid rock fill; landing B (y=6) over the entry strip
-    b.box((0, 1.3, 3.15), (9.6, 2.6, 3.3), "rock")
-    b.box((0, 2.8, 3.15), (9.6, 0.4, 3.3), "floor")
-    b.box((0, 5.8, -4.05), (9.6, 0.4, 1.5), "floor")
-    # ceiling slab (y 8.5-8.8) with a 3x3 hole at the centre
-    b.box((0, 8.65, 3.15), (9.6, 0.3, 3.3), "rock")
-    b.box((0, 8.65, -3.15), (9.6, 0.3, 3.3), "rock")
-    b.box((-3.15, 8.65, 0), (3.3, 0.3, 3.0), "rock")
-    b.box((3.15, 8.65, 0), (3.3, 0.3, 3.0), "rock")
-    for sx, sz, w, d in ((0, 1.6, 3.2, 0.2), (0, -1.6, 3.2, 0.2),
-                         (1.6, 0, 0.2, 3.0), (-1.6, 0, 0.2, 3.0)):
-        b.box((sx, 8.45, sz), (w, 0.3, d), "wood")  # frame around the hole
-    b.box((0, 8.3, 3.5), (0.5, 0.04, 0.5), "glow")
-
-    # walkable surfaces: one slope per flight, plus landings and flight sides
-    lip = 0.03   # surface line through the tread centres, a hair above
-    c.colliders.append(ramp_collider(-3.6, -3.3, 0.0 + lip, 1.5, 3.0 + lip, 2.4))   # F1
-    c.colliders.append(ramp_collider(3.6, 1.5, 3.0 + lip, -3.3, 6.0 + lip, 2.4))    # F2
-    c.colliders.append(ramp_collider(0.0, -3.3, 6.0 + lip, 1.5, 9.0 + lip, 2.4))    # F3
-    c.colliders.append((0, 2.8, 3.15, 9.6, 0.4, 3.3))                          # landing A
-    c.colliders.append((0, 5.8, -4.05, 9.6, 0.4, 1.5))                         # landing B
-    c.colliders.append((0, 1.3, 3.15, 9.6, 2.6, 3.3))                          # rock fill under A
-    c.colliders.append((-2.4, 1.5, -0.9, 0.2, 3.0, 4.8))                       # F1 east side
-    c.colliders.append((2.4, 3.0, -0.9, 0.2, 6.0, 4.8))                        # F2 west side
-    c.colliders.append((-1.2, 4.5, -0.9, 0.2, 9.0, 4.8))                       # F3 west side
-    c.colliders.append((1.2, 4.5, -0.9, 0.2, 9.0, 4.8))                        # F3 east side
-
-    c.portals.append(("U", 0.0, 8.09, 0.0))    # interact point on F3 (kept below pitch-0.3 so G stays in this cell)
-    c.stalactites([(-2.0, -3.9), (2.0, -3.9)], ceil_y=5.6)
-    c.crystals(-1.9, -2.0)
-    c.crystals(1.9, -2.0)
-    c.rubble([(-0.6, -4.1), (0.8, -3.9)])
+    c.stalactites([(2.8, -2.8), (-2.8, 2.0), (1.8, 4.2), (-0.9, -3.4)], ceil_y=H)
+    c.crystals(0.6, 4.3)
+    c.crystals(-1.15, -1.15)
+    c.rubble([(-1.2, -4.2), (1.3, 2.2)])
     return c, c.manifest("kaidan-no-doukutsu", "0.6,0.66,0.8,0.55",
-                         "0.85,0.92,1.0,1.9 ; 0,7.0,-1", ["S", "U, stair"])
-
-
-def cell011():
-    """Upper landing room for the 9 m stair tower (cell010).
-
-    Floor with a 3x3 hole at the centre (the D opening: the top of cell010's
-    third ramp ends flush with this floor, y=0), a wooden rim around the hole,
-    and N/S doors. Floor colliders are provided by the host slot, which swaps
-    its full floor box for four boxes around the hole when the cell declares
-    a D door."""
-    c = Cave()
-    b = c.b
-    H = 4.0
-    # floor around the hole (visual)
-    b.box((0, -0.05, 3.25), (10, 0.1, 3.5), "floor")
-    b.box((0, -0.05, -3.25), (10, 0.1, 3.5), "floor")
-    b.box((3.25, -0.05, 0), (3.5, 0.1, 3.0), "floor")
-    b.box((-3.25, -0.05, 0), (3.5, 0.1, 3.0), "floor")
-    for sx, sz, w, d in ((0, 1.6, 3.2, 0.2), (0, -1.6, 3.2, 0.2),
-                         (1.6, 0, 0.2, 3.0), (-1.6, 0, 0.2, 3.0)):
-        b.box((sx, 0.15, sz), (w, 0.3, d), "wood")   # rim around the hole
-    b.box((0, -0.12, 0), (0.5, 0.04, 0.5), "glow")      # faint glow in the hole
-    # perimeter walls with N/S door gaps; ceiling
-    c.wall(4.9, 0, 0.2, 10, h=H)
-    c.wall(-4.9, 0, 0.2, 10, h=H)
-    for z in (4.9, -4.9):
-        c.wall(-3.25, z, 3.5, 0.2, h=H)
-        c.wall(3.25, z, 3.5, 0.2, h=H)
-    c.door("N")
-    c.door("S")
-    b.box((0, H + 0.15, 0), (10, 0.3, 10), "rock")
-    b.box((0, 0.011, 4.0), (3.0, 0.022, 2.0), "path")
-    b.box((0, 0.011, -4.0), (3.0, 0.022, 2.0), "path")
-    c.portals.append(("D", 0.0, 0.0, 2.4))     # arrival / interact point beside the hole
-    c.stalactites([(-3.2, 2.8), (3.2, -2.8), (-3.0, -3.0)], ceil_y=H)
-    c.crystals(-3.4, 0.0)
-    c.rubble([(3.4, 2.4), (-2.6, -2.2)])
-    return c, c.manifest("kaidan-no-ue", "0.6,0.66,0.8,0.55",
-                         "0.85,0.92,1.0,1.7 ; 0,3.2,0", ["N", "S", "D, stair"])
+                         "0.85,0.92,1.0,1.9 ; 0,5.4,0", ["S", "U, stair"])
 
 
 CELLS = [
-    (6, cell006), (7, cell007), (8, cell008), (9, cell009), (10, cell010), (11, cell011),
+    (6, cell006), (7, cell007), (8, cell008), (9, cell009), (10, cell010),
 ]
 
 if __name__ == "__main__":

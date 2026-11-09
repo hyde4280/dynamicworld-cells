@@ -76,18 +76,23 @@ class CellBuilder:
         return f
 
     # -- primitives -----------------------------------------------------
-    def box(self, center, size, region, rot=None):
+    def box(self, center, size, region, rot=None, skip=()):
+        """skip: face names to omit ("pz","nz","px","nx","top","bottom").
+        Use for faces that are buried/coplanar by construction (e.g. the
+        bottom of a box resting on y=0) — coplanar duplicates Z-fight."""
         f = self._xform(center, rot)
         hx, hy, hz = (s / 2 for s in size)
         faces = [
-            ([(-hx, -hy, hz), (hx, -hy, hz), (hx, hy, hz), (-hx, hy, hz)], (0, 0, 1)),
-            ([(hx, -hy, -hz), (-hx, -hy, -hz), (-hx, hy, -hz), (hx, hy, -hz)], (0, 0, -1)),
-            ([(hx, -hy, hz), (hx, -hy, -hz), (hx, hy, -hz), (hx, hy, hz)], (1, 0, 0)),
-            ([(-hx, -hy, -hz), (-hx, -hy, hz), (-hx, hy, hz), (-hx, hy, -hz)], (-1, 0, 0)),
-            ([(-hx, hy, hz), (hx, hy, hz), (hx, hy, -hz), (-hx, hy, -hz)], (0, 1, 0)),
-            ([(-hx, -hy, -hz), (hx, -hy, -hz), (hx, -hy, hz), (-hx, -hy, hz)], (0, -1, 0)),
+            ("pz", ([(-hx, -hy, hz), (hx, -hy, hz), (hx, hy, hz), (-hx, hy, hz)], (0, 0, 1))),
+            ("nz", ([(hx, -hy, -hz), (-hx, -hy, -hz), (-hx, hy, -hz), (hx, hy, -hz)], (0, 0, -1))),
+            ("px", ([(hx, -hy, hz), (hx, -hy, -hz), (hx, hy, -hz), (hx, hy, hz)], (1, 0, 0))),
+            ("nx", ([(-hx, -hy, -hz), (-hx, -hy, hz), (-hx, hy, hz), (-hx, hy, -hz)], (-1, 0, 0))),
+            ("top", ([(-hx, hy, hz), (hx, hy, hz), (hx, hy, -hz), (-hx, hy, -hz)], (0, 1, 0))),
+            ("bottom", ([(-hx, -hy, -hz), (hx, -hy, -hz), (hx, -hy, hz), (-hx, -hy, hz)], (0, -1, 0))),
         ]
-        for pts, n in faces:
+        for name, (pts, n) in faces:
+            if name in skip:
+                continue
             tp = [f(p, n) for p in pts]
             self.quad([q[0] for q in tp], [q[1] for q in tp], region)
 

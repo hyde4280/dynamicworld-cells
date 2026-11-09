@@ -30,10 +30,10 @@ VRChat ワールド向けセルローダー **Cell Loader (Dynamic World)** の�
 | cell003 | iseki（昼の遺跡） | OBJ・PNG（1024×1024）とも配信中（2026-11-05、PNG は .b64 経由で復元）。20,090 tris |
 | cell004 | suisho-doukutsu（水晶洞窟） | OBJ・PNG とも配信中（2026-11-05、OBJ は .part 分割投入→結合、PNG は .b64 経由で復元）。53,034 tris（上限探り用。コライダーは中心部と岩柱のみ） |
 | cell005 | fujisan（富士山ジオラマ） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。33,792 tris（地形 32,768＋スカート 1,024）。国土地理院DEMタイルから生成した眺める専用セル（コライダーなし）。2026-11-06 に実寸比（高さ 4.2m）＋裾スカート付きで再生成 |
-| cell006 | jujiro-doukutsu（十字路の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。816 tris、コライダー 12。基本パターンセル：扉 N/E/S/W（`# door:` 行で宣言） |
-| cell007 | teijiro-doukutsu（T字路の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。580 tris、コライダー 9。基本パターンセル：扉 N/E/S |
-| cell008 | ipponmichi-doukutsu（一本道の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。472 tris、コライダー 6。基本パターンセル：扉 N/S |
-| cell009 | magarimichi-doukutsu（曲がり道の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。508 tris、コライダー 9。基本パターンセル：扉 S/E |
+| cell006 | jujiro-doukutsu（十字路の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。768 tris、コライダー 12。基本パターンセル：扉 N/E/S/W（`# door:` 行で宣言） |
+| cell007 | teijiro-doukutsu（T字路の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。528 tris、コライダー 9。基本パターンセル：扉 N/E/S |
+| cell008 | ipponmichi-doukutsu（一本道の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。440 tris、コライダー 6。基本パターンセル：扉 N/S |
+| cell009 | magarimichi-doukutsu（曲がり道の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。460 tris、コライダー 9。基本パターンセル：扉 S/E |
 | cell010 | kaidan-no-doukutsu（階段の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。760 tris、コライダー 16。基本パターンセル：扉 S＋U（stair）。8 段の階段で y=3 の踊り場・中央台へ上がり、天井にハッチ |
 
 ## セルの追加方法
