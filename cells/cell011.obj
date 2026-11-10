@@ -7,7 +7,6 @@
 # door: N
 # door: S
 # door: D, stair
-# portal: D, 0.0,0.0,3.4
 mtllib none
 usemtl atlas
 v -4.800 -0.100 4.800
