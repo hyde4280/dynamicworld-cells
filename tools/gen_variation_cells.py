@@ -26,7 +26,21 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cellgen import AtlasPainter
-from gen_basic_cells import REGIONS, Cave
+from gen_basic_cells import Cave
+
+# cell014 atlas layout (user-approved experiment 2026-11-13): the equal
+# 3x2 split is only a generator convention — the loader reads whatever
+# UVs the OBJ carries. Rock covers most of the visible surface, so it
+# gets the whole left half (256x512, ~3x the pixels of the equal
+# split); the five accent materials share the right half.
+REGIONS_HALF = {
+    "rock": (0.0, 0.0, 0.5, 1.0),
+    "floor": (0.5, 0.5, 0.75, 1.0),
+    "path": (0.75, 0.5, 1.0, 1.0),
+    "wood": (0.5, 0.0, 0.75, 0.5),
+    "crystal": (0.75, 0.25, 1.0, 0.5),
+    "glow": (0.75, 0.0, 1.0, 0.25),
+}
 
 
 def _mix(c1, c2, t):
@@ -171,7 +185,7 @@ def rock_photo(p):
 def make_atlas_rock(path, seed):
     """Muddy, rocky palette (user feedback 2026-11-13: the basic cells'
     blue-grey rock read as purple; use warm brown-grey rock and mud)."""
-    p = AtlasPainter(512, REGIONS, seed=seed)
+    p = AtlasPainter(512, REGIONS_HALF, seed=seed)
     rock_photo(p)
     p.tile_grid("floor", (82, 74, 62), (54, 47, 39))
     p.speckle("path", (122, 102, 76), n=1700, amp=16)
@@ -328,6 +342,7 @@ def collider_rects(corridors):
 
 def cell014():
     c = Cave()
+    c.b.regions = REGIONS_HALF  # UV layout matching make_atlas_rock
     c.floor_slab()
     for (x0, x1, z0, z1, touches) in rock_complement(CORRIDORS):
         c.rock_block(x0, x1, z0, z1, collider=False)

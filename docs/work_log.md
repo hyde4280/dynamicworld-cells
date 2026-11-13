@@ -134,3 +134,12 @@ cell002 / cell003 の OBJ は本コミットで配信開始。PNG（各 1024×10
 - Poly Haven の「Rock Boulder Cracked」Diffuse 1K を rock 領域に採用した。CC0（写真: Dimitrios Savva、処理: Dario Barresi)、https://polyhaven.com/a/rock_boulder_cracked 。API が公表する md5（2eee29ef1257ce79569e4be0b76cd1ad）とダウンロードファイルの一致を確認済み。
 - 原画は鉄分寄りの強いオレンジなので、彩度を落として泥色の茶灰色へ寄せ、洞窟用に暗くしてからアトラスの rock 領域（左上）に貼っている。生成は `tools/gen_variation_cells.py` の `rock_photo()`。元画像は `tools/assets/rock_boulder_cracked_diff_1k.jpg` として同梱し、無い場合は手順生成の `rock_texture()` にフォールバックする。
 - 比較: 水玉 blobs → 手順生成（ノイズ＋ファセット＋亀裂）→ CC0 写真（今回）の順で岩肌らしくなった。PNG のみの差し替え、ジオメトリ・マニフェスト不変、check_cell OK。
+
+## 2026-11-13 cell014 のアトラスを岩半分レイアウトに変更
+
+ユーザー承認の実験。均等割り（3列×2行）は生成ツールの都合でしかなく、ローダーは OBJ の UV を読むだけなので、セルごとにレイアウトを変えられる。
+
+- `tools/gen_variation_cells.py` に `REGIONS_HALF` を定義: rock が左半分を全高で専有（256×512、均等割りの約3倍のピクセル）。右半分に floor / path（各 128×256）、wood（128×256）、crystal / glow（各 128×128）。
+- 写真ソースは 1K あるので、岩領域を広げた分だけ縮小で捨てていたディテールが活きる。PNG は 189KB → 343KB。
+- 形状は不変であることを OBJ の vt 行以外が完全一致することで確認済み（1,002 tris、コライダー 18、check_cell OK）。変わったのは UV と PNG のみ。
+- ついでにユーザーの評価メモ: 手順生成の岩肌も「そんな悪くない」だったが、生成コストとリアル感で実写（CC0）優位という判断で写真路線を継続する。
