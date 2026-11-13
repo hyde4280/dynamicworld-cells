@@ -29,11 +29,110 @@ from cellgen import AtlasPainter
 from gen_basic_cells import REGIONS, Cave
 
 
+def _mix(c1, c2, t):
+    return tuple(int(c1[i] + (c2[i] - c1[i]) * t) for i in range(3))
+
+
+def rock_texture(p):
+    """Rock face without the polka-dot look (user feedback 2026-11-13:
+    the old `blobs` ellipses read as 水玉模様, not rock relief).
+
+    Layers: multi-scale smooth noise for large uneven shading,
+    irregular polygon facets with a darker lower edge (chiselled rock),
+    wavy strata lines and random-walk cracks, then fine grain."""
+    import math
+    from PIL import Image, ImageDraw, ImageFilter
+    rng = p.rng
+    x0, y0, x1, y1 = (int(v) for v in p.px("rock"))
+    w, h = x1 - x0, y1 - y0
+    base = (76, 64, 51)
+    dark = (40, 34, 27)
+    light = (122, 106, 86)
+
+    # --- multi-scale noise field -------------------------------------
+    fields = []
+    for cells_x, weight in ((5, 0.50), (11, 0.30), (23, 0.20)):
+        cells_y = max(2, int(cells_x * h / w))
+        small = Image.new("L", (cells_x, cells_y))
+        sp = small.load()
+        for yy in range(cells_y):
+            for xx in range(cells_x):
+                sp[xx, yy] = rng.randint(0, 255)
+        layer = small.resize((w, h), Image.BICUBIC).filter(
+            ImageFilter.GaussianBlur(1.2))
+        fields.append((layer.load(), weight))
+    tile = Image.new("RGB", (w, h))
+    tp = tile.load()
+    for yy in range(h):
+        for xx in range(w):
+            v = sum(f[xx, yy] * weight for f, weight in fields) / 255.0
+            shade = (v - 0.5) * 2.0
+            c = _mix(base, light, shade * 0.75) if shade > 0 else \
+                _mix(base, dark, -shade * 0.85)
+            jitter = rng.randint(-6, 6)
+            tp[xx, yy] = tuple(max(0, min(255, ch + jitter)) for ch in c)
+    p.img.paste(tile, (x0, y0))
+    p.d = ImageDraw.Draw(p.img)
+    d = p.d
+
+    # --- facets: irregular polygons, darker lower edge ---------------
+    palette = [(90, 78, 62), (63, 54, 44), (99, 86, 68), (56, 47, 39)]
+    for _ in range(46):
+        cx = rng.uniform(x0, x1)
+        cy = rng.uniform(y0, y1)
+        r = rng.uniform(10, 34)
+        nv = rng.randint(5, 8)
+        pts = []
+        for k in range(nv):
+            ang = 2 * 3.14159265 * k / nv + rng.uniform(-0.3, 0.3)
+            rr = r * rng.uniform(0.55, 1.15)
+            pts.append((cx + rr * math.cos(ang),
+                        cy + rr * math.sin(ang) * 0.78))
+        fill = _mix(rng.choice(palette), base, 0.35)
+        d.polygon(pts, fill=fill)
+        # shadow along the lower edge, highlight along the upper edge
+        low = max(range(nv), key=lambda k: pts[k][1])
+        up = min(range(nv), key=lambda k: pts[k][1])
+        for a, b, col, wd in ((low, (low + 1) % nv, dark, 2),
+                              (up, (up + 1) % nv, light, 1)):
+            d.line([pts[a], pts[b]], fill=_mix(col, fill, 0.3), width=wd)
+
+    # --- strata: wavy near-horizontal dark bands ----------------------
+    for _ in range(7):
+        yy = rng.uniform(y0 + 8, y1 - 8)
+        pts = []
+        xx = x0
+        while xx <= x1:
+            pts.append((xx, yy + rng.uniform(-2.5, 2.5)))
+            xx += rng.uniform(14, 30)
+        d.line(pts, fill=_mix(dark, base, 0.25), width=rng.randint(1, 3))
+
+    # --- cracks: random-walk polylines --------------------------------
+    for _ in range(16):
+        x = rng.uniform(x0, x1)
+        y = rng.uniform(y0, y1)
+        pts = [(x, y)]
+        for _ in range(rng.randint(4, 9)):
+            x += rng.uniform(-9, 9)
+            y += rng.uniform(4, 13)
+            pts.append((x, y))
+        d.line(pts, fill=_mix(dark, base, 0.1), width=1)
+
+    # --- fine grain -----------------------------------------------------
+    for _ in range(900):
+        x = rng.uniform(x0, x1)
+        y = rng.uniform(y0, y1)
+        r = rng.uniform(0.6, 1.7)
+        delta = rng.randint(-13, 13)  # luminance only: no colour confetti
+        c = tuple(max(0, min(255, ch + delta)) for ch in base)
+        d.ellipse([x - r, y - r, x + r, y + r], fill=c)
+
+
 def make_atlas_rock(path, seed):
     """Muddy, rocky palette (user feedback 2026-11-13: the basic cells'
     blue-grey rock read as purple; use warm brown-grey rock and mud)."""
     p = AtlasPainter(512, REGIONS, seed=seed)
-    p.blobs("rock", (72, 62, 50), (94, 82, 66), n=320, rmin=6, rmax=22)
+    rock_texture(p)
     p.tile_grid("floor", (82, 74, 62), (54, 47, 39))
     p.speckle("path", (122, 102, 76), n=1700, amp=16)
     p.planks("wood", (104, 72, 42), (70, 47, 27))
