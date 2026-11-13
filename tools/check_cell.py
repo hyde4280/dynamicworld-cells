@@ -43,8 +43,11 @@ def validate(path):
             errs.append(f"uv out of [0,1]: {(u, v)}")
             break
     cols = [m for m in manifest if m.startswith("# collider:")]
-    if len(cols) > 64:
-        errs.append(f"colliders {len(cols)} > pool 64")
+    # Pool limit: the loader cap is 64 and the StageTest slot pools are
+    # 32 (dynamicworld, 2026-11-09/10). The v0-era limit of 16 was
+    # raised on the loader side; the validator follows the scene pool.
+    if len(cols) > 32:
+        errs.append(f"colliders {len(cols)} > pool 32")
     doors = [m.split(":", 1)[1].strip() for m in manifest if m.startswith("# door:")]
     for d in doors:
         if d.split(",")[0].strip() not in ("N", "E", "S", "W", "U", "D"):

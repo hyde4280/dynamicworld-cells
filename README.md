@@ -35,6 +35,7 @@ VRChat ワールド向けセルローダー **Cell Loader (Dynamic World)** の�
 | cell008 | ipponmichi-doukutsu（一本道の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。440 tris、コライダー 6。基本パターンセル：扉 N/S |
 | cell009 | magarimichi-doukutsu（曲がり道の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。460 tris、コライダー 9。基本パターンセル：扉 S/E |
 | cell010 | kaidan-no-doukutsu（階段の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。760 tris、コライダー 16。基本パターンセル：扉 S＋U（stair）。8 段の階段で y=3 の踊り場・中央台へ上がり、天井にハッチ |
+| cell014 | kuichigai-jujiro-doukutsu（食い違い十字路の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。1,002 tris、コライダー 18。バリエーションパターンセル：扉 N/E/S/W（cell006 と同じ接続）だが内部の通路が食い違い、対面の扉同士が見えない |
 
 ## セルの追加方法
 
