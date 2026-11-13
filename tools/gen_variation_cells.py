@@ -25,7 +25,21 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from gen_basic_cells import Cave, make_atlas
+from cellgen import AtlasPainter
+from gen_basic_cells import REGIONS, Cave
+
+
+def make_atlas_rock(path, seed):
+    """Muddy, rocky palette (user feedback 2026-11-13: the basic cells'
+    blue-grey rock read as purple; use warm brown-grey rock and mud)."""
+    p = AtlasPainter(512, REGIONS, seed=seed)
+    p.blobs("rock", (72, 62, 50), (94, 82, 66), n=320, rmin=6, rmax=22)
+    p.tile_grid("floor", (82, 74, 62), (54, 47, 39))
+    p.speckle("path", (122, 102, 76), n=1700, amp=16)
+    p.planks("wood", (104, 72, 42), (70, 47, 27))
+    p.gradient("crystal", (132, 198, 188), (42, 96, 90), speckle_n=200)
+    p.gradient("glow", (255, 196, 96), (196, 108, 36), speckle_n=200)
+    p.save(path)
 
 # corridor rects (x0, x1, z0, z1), file coords: N = +Z
 CORRIDORS = [
@@ -189,7 +203,7 @@ def cell014():
     c.stalagmites([(-1.2, 3.6), (3.75, -1.6), (1.2, -4.3)])
     c.crystals(3.55, 1.55)
     c.rubble([(1.35, 4.4), (-2.9, 2.6), (3.7, -3.7)])
-    return c, c.manifest("kuichigai-jujiro-doukutsu", "0.55,0.62,0.78,0.5",
+    return c, c.manifest("kuichigai-jujiro-doukutsu", "0.66,0.60,0.50,0.5",
                          "1.0,0.72,0.42,1.7 ; 0,3.4,0", ["N", "E", "S", "W"])
 
 
@@ -203,5 +217,5 @@ if __name__ == "__main__":
         tris = cave.b.write_obj(
             os.path.join(out, f"cell{num:03d}.obj"), manifest,
             f"# CELL{num} variation pattern cave (offset cross) - see MULTI_CELL_DESIGN.md (dynamicworld)")
-        make_atlas(os.path.join(out, f"cell{num:03d}.png"), seed=600 + num)
+        make_atlas_rock(os.path.join(out, f"cell{num:03d}.png"), seed=600 + num)
         print(f"cell{num:03d}: tris={tris} colliders={len(cave.colliders)}")

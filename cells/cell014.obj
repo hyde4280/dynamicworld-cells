@@ -1,8 +1,8 @@
 # CELL14 variation pattern cave (offset cross) - see MULTI_CELL_DESIGN.md (dynamicworld)
 # cell.name: kuichigai-jujiro-doukutsu
 # cell.version: 0
-# cell.ambient: 0.55,0.62,0.78,0.5
-# cell.lightvolume: 0.55,0.62,0.78,0.5
+# cell.ambient: 0.66,0.60,0.50,0.5
+# cell.lightvolume: 0.66,0.60,0.50,0.5
 # cell.keylight: 1.0,0.72,0.42,1.7 ; 0,3.4,0
 # door: N
 # door: E
