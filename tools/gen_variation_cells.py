@@ -128,11 +128,51 @@ def rock_texture(p):
         d.ellipse([x - r, y - r, x + r, y + r], fill=c)
 
 
+def rock_photo(p):
+    """Rock face from a CC0 photo texture (user suggestion 2026-11-13:
+    real rock imagery beats procedural generation for the wall region).
+
+    Source: Poly Haven "Rock Boulder Cracked" diffuse 1K
+    (https://polyhaven.com/a/rock_boulder_cracked), CC0, photography
+    Dimitrios Savva / processing Dario Barresi. The raw scan is very
+    orange (iron-rich rock), so it is graded toward muddy brown-grey
+    and darkened before pasting. Falls back to rock_texture() when the
+    asset file is missing."""
+    import os
+    from PIL import Image
+    asset = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "assets", "rock_boulder_cracked_diff_1k.jpg")
+    if not os.path.exists(asset):
+        rock_texture(p)
+        return
+    x0, y0, x1, y1 = (int(v) for v in p.px("rock"))
+    w, h = x1 - x0, y1 - y0
+    src = Image.open(asset).convert("RGB")
+    crop_w = int(src.height * w / h)
+    left = (src.width - crop_w) // 2
+    tile = src.crop((left, 0, left + crop_w, src.height)).resize((w, h))
+    tp = tile.load()
+    for yy in range(h):
+        for xx in range(w):
+            r, g, b = tp[xx, yy]
+            lum = 0.299 * r + 0.587 * g + 0.114 * b
+            # pull toward a muddy brown-grey, then darken for cave use
+            t = 0.48
+            r = (r * (1 - t) + lum * 1.03 * t) * 0.84
+            g = (g * (1 - t) + lum * 0.93 * t) * 0.84
+            b = (b * (1 - t) + lum * 0.79 * t) * 0.84
+            tp[xx, yy] = (max(0, min(255, int(r))), max(0, min(255, int(g))),
+                          max(0, min(255, int(b))))
+    p.img.paste(tile, (x0, y0))
+    from PIL import ImageDraw
+    p.d = ImageDraw.Draw(p.img)
+
+
 def make_atlas_rock(path, seed):
     """Muddy, rocky palette (user feedback 2026-11-13: the basic cells'
     blue-grey rock read as purple; use warm brown-grey rock and mud)."""
     p = AtlasPainter(512, REGIONS, seed=seed)
-    rock_texture(p)
+    rock_photo(p)
     p.tile_grid("floor", (82, 74, 62), (54, 47, 39))
     p.speckle("path", (122, 102, 76), n=1700, amp=16)
     p.planks("wood", (104, 72, 42), (70, 47, 27))

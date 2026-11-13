@@ -126,3 +126,11 @@ cell002 / cell003 の OBJ は本コミットで配信開始。PNG（各 1024×10
 - `tools/gen_variation_cells.py` の岩テクスチャ生成を `blobs`（楕円の重ね描き）から専用の `rock_texture()` に差し替えた。多段の平滑ノイズで大きな陰影、不規則ポリゴンのファセット（下辺に影・上辺にハイライト）、波状の層理ライン、ランダムウォークの亀裂、最後に輝度のみの細粒ノイズ（色付きの紙吹雪状ノイズにしないため）。
 - 対象は rock 領域のみ。ジオメトリ・マニフェストは不変で、PNG の差し替えのみ。check_cell OK。
 - 良ければ基本セル（gen_basic_cells の make_atlas）にも同じ岩肌生成を移す。なお floor / path 領域の speckle にも色ごとのジッタによる色付き粒が残っているので、必要なら同じ方針で揃える。
+
+## 2026-11-13 cell014 の岩肌を CC0 写真テクスチャに差し替え
+
+ユーザー提案: 自動生成だけでなく、CC0 の岩壁画像を貼ってもいい。
+
+- Poly Haven の「Rock Boulder Cracked」Diffuse 1K を rock 領域に採用した。CC0（写真: Dimitrios Savva、処理: Dario Barresi)、https://polyhaven.com/a/rock_boulder_cracked 。API が公表する md5（2eee29ef1257ce79569e4be0b76cd1ad）とダウンロードファイルの一致を確認済み。
+- 原画は鉄分寄りの強いオレンジなので、彩度を落として泥色の茶灰色へ寄せ、洞窟用に暗くしてからアトラスの rock 領域（左上）に貼っている。生成は `tools/gen_variation_cells.py` の `rock_photo()`。元画像は `tools/assets/rock_boulder_cracked_diff_1k.jpg` として同梱し、無い場合は手順生成の `rock_texture()` にフォールバックする。
+- 比較: 水玉 blobs → 手順生成（ノイズ＋ファセット＋亀裂）→ CC0 写真（今回）の順で岩肌らしくなった。PNG のみの差し替え、ジオメトリ・マニフェスト不変、check_cell OK。
