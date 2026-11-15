@@ -198,15 +198,200 @@ def cell014():
                          "1.0,0.72,0.42,2.0 ; 2.6,2.16,1.22", ["N", "E", "S", "W"])
 
 
-CELLS = [(14, cell014)]
+# ---------------------------------------------------------------------------
+# cell015: organic ("gunyagunya") I-corridor. The corridor is a tube whose
+# cross-section morphs from a noise-carved arch (middle) to the standard
+# 3m x 3m rectangle at both faces, so door dressing, gates and colliders
+# stay standard. Carving only ever recedes INTO the rock (the corridor
+# never gets narrower than the nominal 3m), so per-segment box colliders
+# derived from the sampled profile stay exact.
+# ---------------------------------------------------------------------------
+import math
+
+_ARCH = [(-1.5, 0.0), (-1.5, 1.0), (-1.5, 2.0), (-1.44, 2.7), (-1.08, 3.25),
+         (-0.55, 3.52), (0.0, 3.62), (0.55, 3.52), (1.08, 3.25), (1.44, 2.7),
+         (1.5, 2.0), (1.5, 1.0), (1.5, 0.0)]
+_RECT = [(-1.5, 0.0), (-1.5, 1.0), (-1.5, 2.0), (-1.5, 2.55), (-1.5, 3.0),
+         (-0.75, 3.0), (0.0, 3.0), (0.75, 3.0), (1.5, 3.0), (1.5, 2.55),
+         (1.5, 2.0), (1.5, 1.0), (1.5, 0.0)]
+
+
+def _noise(a, b):
+    return (math.sin(a) * 0.55 + math.sin(a * 2.33 + b * 1.31) * 0.30
+            + math.sin(a * 4.71 - b * 2.17) * 0.15)
+
+
+def _carve_wall(z, y, phase):
+    return 0.55 * (0.5 + 0.5 * _noise(z * 0.85 + phase, y * 0.75))
+
+
+def _carve_ceil(z, x):
+    return 0.35 * (0.5 + 0.5 * _noise(z * 0.8 + 7.3, x * 0.9))
+
+
+def _smooth(t):
+    t = max(0.0, min(1.0, t))
+    return t * t * (3 - 2 * t)
+
+
+def _ring(z):
+    """Cross-section profile (13 pts, west floor -> east floor) at z."""
+    m = _smooth((abs(z) - 3.8) / 1.2)
+    pts = []
+    for i, (ax, ay) in enumerate(_ARCH):
+        cx, cy = ax, ay
+        if abs(ax) >= 1.08 and ay <= 2.7:            # walls / shoulders
+            phase = 0.0 if ax < 0 else 3.9
+            c = _carve_wall(z, ay, phase) * (1 - m)
+            cx += math.copysign(c * (1.0 if ay <= 2.0 else 0.75), ax)
+            if ay > 2.0:
+                cy += _carve_ceil(z, ax) * (1 - m) * 0.5
+        elif ay >= 3.25:                              # ceiling
+            cy += _carve_ceil(z, ax) * (1 - m)
+        rx, ry = _RECT[i]
+        pts.append((cx + (rx - cx) * m, cy + (ry - cy) * m))
+    return pts
+
+
+def _wall_x(z, y, side):
+    """Wall surface x at height y on the given side (-1 west, +1 east),
+    interpolated from the ring profile (wall band only)."""
+    pts = _ring(z)
+    chain = [(px, py) for (px, py) in pts if px * side > 0 or px == 0]
+    chain = [(px, py) for (px, py) in pts if (px < 0) == (side < 0)]
+    chain.sort(key=lambda p: p[1])
+    for (x0, y0), (x1, y1) in zip(chain, chain[1:]):
+        if y0 <= y <= y1 and y1 > y0:
+            return x0 + (x1 - x0) * (y - y0) / (y1 - y0)
+    return chain[-1][0]
+
+
+def _emit_tri(b, p1, p2, p3, n1, n2, n3, uv1, uv2, uv3):
+    ux, uy, uz = p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]
+    vx, vy, vz = p3[0] - p1[0], p3[1] - p1[1], p3[2] - p1[2]
+    gx, gy, gz = uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx
+    mx, my, mz = (n1[0] + n2[0] + n3[0]), (n1[1] + n2[1] + n3[1]), (n1[2] + n2[2] + n3[2])
+    if gx * mx + gy * my + gz * mz < 0:
+        p2, p3, n2, n3, uv2, uv3 = p3, p2, n3, n2, uv3, uv2
+    b.tri(p1, p2, p3, n1, n2, n3, uv1, uv2, uv3)
+
+
+def cell015():
+    c = Cave(REGIONS_HALF)
+    b = c.b
+    c.floor_slab()
+    b.box((0, 0.011, 0), (3.0, 0.022, 10), "path",
+          skip=("bottom", "px", "nx", "pz", "nz"))
+
+    # --- the tube ------------------------------------------------------
+    zs = [(-20 + i) * 0.25 for i in range(41)]
+    grid = [[(x, y, z) for (x, y) in _ring(z)] for z in zs]
+    npts = len(_ARCH)
+    # vertex normals from central differences, oriented toward the axis
+    normals = []
+    for r in range(len(zs)):
+        row = []
+        for i in range(npts):
+            p = grid[r][i]
+            pa = grid[max(r - 1, 0)][i]
+            pb = grid[min(r + 1, len(zs) - 1)][i]
+            dz = (pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2])
+            qa = grid[r][max(i - 1, 0)]
+            qb = grid[r][min(i + 1, npts - 1)]
+            di = (qb[0] - qa[0], qb[1] - qa[1], qb[2] - qa[2])
+            nx = dz[1] * di[2] - dz[2] * di[1]
+            ny = dz[2] * di[0] - dz[0] * di[2]
+            nz = dz[0] * di[1] - dz[1] * di[0]
+            L = math.sqrt(nx * nx + ny * ny + nz * nz) or 1.0
+            nx, ny, nz = nx / L, ny / L, nz / L
+            if nx * (0 - p[0]) + ny * (1.5 - p[1]) + nz * 0 < 0:
+                nx, ny, nz = -nx, -ny, -nz
+            row.append((nx, ny, nz))
+        normals.append(row)
+    u0, v0, u1, v1 = REGIONS_HALF["rock"]
+    for r in range(len(zs) - 1):
+        for i in range(npts - 1):
+            quad = [(r, i), (r, i + 1), (r + 1, i + 1), (r + 1, i)]
+            uv = {}
+            for (rr, ii) in quad:
+                uv[(rr, ii)] = (u0 + (u1 - u0) * (zs[rr] + 5) / 10,
+                                v0 + (v1 - v0) * ii / (npts - 1))
+            P = [grid[rr][ii] for (rr, ii) in quad]
+            N = [normals[rr][ii] for (rr, ii) in quad]
+            U = [uv[q] for q in quad]
+            _emit_tri(b, P[0], P[1], P[2], N[0], N[1], N[2], U[0], U[1], U[2])
+            _emit_tri(b, P[0], P[2], P[3], N[0], N[2], N[3], U[0], U[2], U[3])
+
+    # --- end walls (beside the mouth) and outer shell ------------------
+    for s, zn in ((1, 5.0), (-1, -5.0)):
+        n = [(0, 0, -s)] * 4
+        if s == 1:   # winding normal must be -z (into the cell)
+            left = [(-1.5, 0, zn), (-5, 0, zn), (-5, 4, zn), (-1.5, 4, zn)]
+            right = [(5, 0, zn), (1.5, 0, zn), (1.5, 4, zn), (5, 4, zn)]
+        else:        # winding normal +z
+            left = [(-5, 0, zn), (-1.5, 0, zn), (-1.5, 4, zn), (-5, 4, zn)]
+            right = [(1.5, 0, zn), (5, 0, zn), (5, 4, zn), (1.5, 4, zn)]
+        b.quad(left, n, "rock")
+        b.quad(right, n, "rock")
+        c.colliders.append((-3.25, 2.0, zn, 3.5, 4.0, 0.6))
+        c.colliders.append((3.25, 2.0, zn, 3.5, 4.0, 0.6))
+        c.colliders.append((0, 3.5, zn, 3.0, 1.0, 0.6))
+    b.box((0, 4.05, 0), (10, 0.1, 10), "rock", skip=("bottom",))  # roof cap
+    b.box((-5.05, 2.0, 0), (0.1, 4.0, 10), "rock", skip=("px", "bottom"))
+    b.box((5.05, 2.0, 0), (0.1, 4.0, 10), "rock", skip=("nx", "bottom"))
+
+    # --- per-segment wall colliders from the sampled profile -----------
+    for k in range(10):
+        z0, z1 = -5 + k, -4 + k
+        for side in (-1, 1):
+            mn = 9.9
+            r = 0
+            while r <= 4:
+                z = z0 + r * 0.25
+                for (px, py) in _ring(z):
+                    if (px < 0) == (side < 0) and 0.2 <= py <= 2.6:
+                        mn = min(mn, abs(px))
+                r += 1
+            inner = mn - 0.03
+            cx = side * (5 + inner) / 2
+            c.colliders.append((cx, 2.0, (z0 + z1) / 2, 5 - inner, 4.0, 1.0))
+
+    # --- standard dressing / decor -------------------------------------
+    for f in ("N", "S"):
+        c.door(f)
+    wx_w = _wall_x(1.9, 2.24, -1)
+    c.lantern(wx_w - 0.02, 1.9, 1, 0)
+    wx_e = _wall_x(-1.9, 2.24, 1)
+    c.lantern(wx_e + 0.02, -1.9, -1, 0)
+    c.tiling = ("rock", 2.0, REGIONS_HALF["rock"])
+    for (sx, sz) in [(0.6, -2.6), (-0.7, 0.8), (0.2, 3.1)]:
+        top = max(y for (x, y) in _ring(sz) if abs(x) <= 0.6)
+        c.stalactites([(sx, sz)], ceil_y=top + 0.12)
+    c.stalagmites([(_wall_x(-1.4, 0.4, -1) + 0.28, -1.4),
+                   (_wall_x(2.3, 0.4, 1) - 0.28, 2.3)])
+    c.crystals(_wall_x(0.9, 0.3, 1) - 0.38, 0.9)
+    c.rubble([(_wall_x(-3.4, 0.3, -1) + 0.22, -3.4),
+              (_wall_x(3.8, 0.3, 1) - 0.22, 3.8)])
+    g = c.lights[0]
+    keylight = f"1.0,0.72,0.42,2.0 ; {g[0]:.2f},{g[1]:.2f},{g[2]:.2f}"
+    return c, c.manifest("gunyagunya-doukutsu", "0.64,0.59,0.50,0.5",
+                         keylight, ["N", "S"])
+
+
+CELLS = [(14, cell014), (15, cell015)]
+HEADERS = {14: "# CELL14 variation pattern cave (offset cross) - see MULTI_CELL_DESIGN.md (dynamicworld)",
+           15: "# CELL15 variation pattern cave (organic I corridor) - see MULTI_CELL_DESIGN.md (dynamicworld)"}
 
 if __name__ == "__main__":
     here = os.path.dirname(os.path.abspath(__file__))
     out = os.path.join(here, "..", "cells")
+    import sys as _sys
+    only = int(_sys.argv[1]) if len(_sys.argv) > 1 else None
     for num, fn in CELLS:
+        if only is not None and num != only:
+            continue
         cave, manifest = fn()
         tris = cave.b.write_obj(
-            os.path.join(out, f"cell{num:03d}.obj"), manifest,
-            f"# CELL{num} variation pattern cave (offset cross) - see MULTI_CELL_DESIGN.md (dynamicworld)")
+            os.path.join(out, f"cell{num:03d}.obj"), manifest, HEADERS[num])
         make_atlas_rock(os.path.join(out, f"cell{num:03d}.png"), seed=600 + num)
         print(f"cell{num:03d}: tris={tris} colliders={len(cave.colliders)}")
