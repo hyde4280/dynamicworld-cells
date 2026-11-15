@@ -1,0 +1,83 @@
+# mine01 "Tomoshibi no Ana" (dynamicworld docs/DUNGEON_DESIGN.md section 2).
+# Three layers: upper y=2 (u*), middle y=1 (m*), deep y=0 (d*).
+# Flags: 1 = upper shrine switch (u4), 2 = hall cleared (m6), 3 = deep hall cleared (d2),
+#        4 = middle shrine switch (m4; opens the ladder shortcut u8 - m9).
+# Node attributes after the rotation (switch= / spawn= / clear=) are proposals; loaders
+# that do not know them ignore the extra fields. Comments must be whole lines: the
+# loader does not strip a trailing "#".
+spec.version: 1
+world.name: mine01
+world.rev: 1
+world.mode: fixed
+world.multiplayer: solo
+world.root: u0
+
+# --- upper layer (y=2): entrance, campfire, shrine (flag 1) ---
+node: u0, cell006, 0,2,0, 0
+node: u1, cell007, 0,2,1, 0
+node: u2, cell018, 0,2,2, 0
+node: u3, cell009, 1,2,1, 1
+node: u4, cell016, 0,2,3, 0, switch=1
+node: u5, cell009, 1,2,0, 2
+node: u6, cell011, 0,2,-1, 0
+node: u7, cell009, -1,2,0, 0
+node: u8, cell013, -1,2,-1, 0
+
+# --- middle layer (y=1): mine workings, shrine (flag 4), campfire, hall (flag 2) ---
+node: m0, cell010, 0,1,-1, 0
+node: m1, cell006, 0,1,-2, 0
+node: m2, cell015, 0,1,-3, 0
+node: m3, cell014, 0,1,-4, 0
+node: m4, cell016, -1,1,-4, 3, switch=4
+node: m5, cell009, 1,1,-2, 1
+node: m6, cell017, 0,1,-6, 0, spawn=boss:1, spawn=bug:2, clear=2
+node: m7, cell018, 0,1,-5, 0
+node: m8, cell011, 0,1,-7, 0
+node: m9, cell012, -1,1,-1, 0
+node: m10, cell009, -1,1,-2, 3
+node: m11, cell008, 1,1,-3, 0
+node: m12, cell009, 1,1,-4, 2
+
+# --- deep layer (y=0): descent, hall (flag 3), the ember shrine ---
+node: d0, cell010, 0,0,-7, 0
+node: d1, cell008, 0,0,-8, 0
+node: d2, cell017, 0,0,-9, 0, spawn=eater:2, spawn=bug:2, clear=3
+node: d3, cell016, 0,0,-10, 2, switch=5
+
+# upper
+edge: u0.N, u1.S
+edge: u1.N, u2.S
+edge: u2.N, u4.S
+edge: u1.E, u3.S
+edge: u3.E, u5.S
+edge: u0.E, u5.E
+edge: u0.W, u7.E
+edge: u7.S, u8.N
+edge: u0.S, u6.N, key=1
+
+# upper - middle
+edge: m0.U, u6.D
+edge: m9.U, u8.D, key=4
+
+# middle
+edge: m0.S, m1.N
+edge: m1.S, m2.N
+edge: m2.S, m3.N
+edge: m3.W, m4.S
+edge: m1.E, m5.S
+edge: m5.E, m11.N
+edge: m11.S, m12.S
+edge: m12.E, m3.E
+edge: m1.W, m10.S
+edge: m10.E, m9.S
+edge: m3.S, m7.N
+edge: m7.S, m6.N
+edge: m6.S, m8.N, key=2
+
+# middle - deep
+edge: d0.U, m8.D
+
+# deep
+edge: d0.S, d1.N
+edge: d1.S, d2.N
+edge: d2.S, d3.S, key=3

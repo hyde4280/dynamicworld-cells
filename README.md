@@ -37,6 +37,20 @@ VRChat ワールド向けセルローダー **Cell Loader (Dynamic World)** の�
 | cell010 | kaidan-no-doukutsu（階段の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。760 tris、コライダー 16。基本パターンセル：扉 S＋U（stair）。8 段の階段で y=3 の踊り場・中央台へ上がり、天井にハッチ |
 | cell015 | gunyagunya-doukutsu（ぐにゃぐにゃ洞窟） | OBJ・PNG（512×512）とも配信中。1,666 tris、コライダー 30。有機形状の試作セル：通路がノイズで掘られたアーチ状の筒で、壁は岩側へのみ凹む（幅 3.0〜3.76m）。両端は標準の 3m×3m 矩形に変形して戻るので扉 N/S・ゲート・コライダーは従来仕様のまま。ランタン 2 基＋lights/tiling 付き |
 | cell014 | kuichigai-jujiro-doukutsu（食い違い十字路の洞窟） | OBJ・PNG（512×512）とも配信中（PNG は .b64 経由で復元）。1,222 tris、コライダー 18。バリエーションパターンセル：扉 N/E/S/W（cell006 と同じ接続）だが内部の通路が食い違い、対面の扉同士が見えない |
+| cell016 | hokora-no-ma（祠の間） | OBJ・PNG（512×512）。914 tris、コライダー 15。ダンジョン用の部屋セル：扉 S のみ（行き止まり）。7 m × 6.5 m の間（天井 5 m）の奥に祭壇の龕。祭壇前に `# switch:`（仕掛けスイッチの位置。提案中の行）。ランタン 2 基＋祭壇の火、lights/tiling 付き |
+| cell017 | hiroma（広間） | OBJ・PNG（512×512）。1,326 tris、コライダー 18。ダンジョン用の部屋セル：扉 N/S。8.4 m 四方・天井 5.3 m、柱 4 本。`# spawn:`（敵の出現点。提案中の行）5 点。ランタン 4 基、lights/tiling 付き |
+| cell018 | takibi-no-ma（焚き火の間） | OBJ・PNG（512×512）。1,342 tris、コライダー 19。ダンジョン用の部屋セル：扉 N/S、`# cell.save: 1`（セーブポイント）。6 m 四方の間の中央に焚き火、東西に低い寝床の龕。焚き火＋ランタン 2 基、lights/tiling 付き |
+
+## ワールド定義
+
+`defs/*.txt` はワールド定義（ノード＝セルの配置、辺＝扉の接続）。ローダーが `wdUrl` から読む。
+
+| ファイル | 内容 |
+|---|---|
+| `defs/stagetest.txt` | テスト用ワールド（12 ノード） |
+| `defs/mine01.txt` | ダンジョン mine01「灯の坑」（三層 26 ノード） |
+
+検査: `python3 tools/check_def.py defs/mine01.txt --map`（定義とセルの整合・到達性・鍵の順序）、`python3 tools/check_pair_overlap.py defs/mine01.txt --all`（隣り合うセル間の Z ファイト）。
 
 ## セルの追加方法
 
