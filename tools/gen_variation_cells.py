@@ -99,7 +99,7 @@ def rock_complement(corridors):
                     continue
                 ra, rb = merged[a], merged[b]
                 if ra[0] == rb[0] and ra[1] == rb[1] and abs(ra[3] - rb[2]) < 1e-9:
-                    ra[2] = rb[2]
+                    ra[3] = rb[3]
                     ra[4] = ra[4] or rb[4]
                     ra[5] |= rb[5]
                     merged.pop(b)
