@@ -20,8 +20,8 @@ from gen_basic_cells import Cave, make_atlas  # noqa: E402
 
 H = 6.0
 LX, LZ = 0.0, 4.62            # ladder axis
-HX0, HX1, HZ0 = -0.65, 0.65, 4.15   # hatch x range, south edge (north edge is the wall)
-PORTAL = (0.0, 0.0, 3.7)      # floor point in front of the ladder (both cells)
+HX0, HX1, HZ0 = -0.65, 0.65, 4.35   # hatch x range, south edge (north edge is the wall)
+PORTAL = (0.0, 0.0, 4.0)      # floor point in front of the ladder (both cells)
 WH = H - 0.02                 # wall tops stay below the 6.0 floor of the cell above
 RIM = 4.8                     # inner face of the rim walls
 
