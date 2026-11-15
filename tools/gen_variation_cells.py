@@ -309,13 +309,29 @@ def cell015():
             row.append((nx, ny, nz))
         normals.append(row)
     u0, v0, u1, v1 = REGIONS_HALF["rock"]
+
+    def _pingpong(s, period=2.0):
+        p = (s / period) % 2.0
+        return p if p <= 1.0 else 2.0 - p
+
+    # UVs tile the rock photo at ~2m in both directions (ping-pong, so
+    # there are no wrap seams): u along the corridor, v along the
+    # profile's arc length. Without this the single photo stretches
+    # over the whole 10m tube and the rock grain disappears.
+    vertex_uv = {}
+    for r in range(len(zs)):
+        cum = [0.0]
+        for i in range(1, npts):
+            ax, ay = grid[r][i - 1][0], grid[r][i - 1][1]
+            bx, by = grid[r][i][0], grid[r][i][1]
+            cum.append(cum[-1] + math.hypot(bx - ax, by - ay))
+        for i in range(npts):
+            vertex_uv[(r, i)] = (u0 + (u1 - u0) * _pingpong(zs[r] + 5),
+                                 v0 + (v1 - v0) * _pingpong(cum[i]))
     for r in range(len(zs) - 1):
         for i in range(npts - 1):
             quad = [(r, i), (r, i + 1), (r + 1, i + 1), (r + 1, i)]
-            uv = {}
-            for (rr, ii) in quad:
-                uv[(rr, ii)] = (u0 + (u1 - u0) * (zs[rr] + 5) / 10,
-                                v0 + (v1 - v0) * ii / (npts - 1))
+            uv = {q: vertex_uv[q] for q in quad}
             P = [grid[rr][ii] for (rr, ii) in quad]
             N = [normals[rr][ii] for (rr, ii) in quad]
             U = [uv[q] for q in quad]
