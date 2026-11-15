@@ -26,7 +26,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from atlas_common import REGIONS_HALF, make_atlas_rock  # noqa: E402
-from gen_basic_cells import Cave, _rect_subtract, _n  # noqa: E402
+from gen_basic_cells import Cave, _rect_subtract, _n, dark_mine  # noqa: E402
 from gen_variation_cells import rock_complement, collider_rects  # noqa: E402
 
 TOP = 5.6          # top of the rock and of every ceiling box
@@ -39,6 +39,7 @@ class Room(Cave):
         self._open = []      # (x0, x1, z0, z1)
         self.extra = []      # manifest lines after the standard block
         self.tiling = ("rock", 2.0, REGIONS_HALF["rock"])
+        dark_mine(self)
 
     def open_area(self, x0, x1, z0, z1, ceil_y, path=True):
         """Carve a walkable rect with its own ceiling height. Rects may overlap:

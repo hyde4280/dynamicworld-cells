@@ -4,6 +4,8 @@
 # cell.ambient: 0.6,0.66,0.8,0.55
 # cell.lightvolume: 0.6,0.66,0.8,0.55
 # cell.keylight: 0.85,0.92,1.0,1.7 ; 0,3.2,0
+# cell.baselight: 0.3
+# cell.fog: 3, 10
 # door: N
 # door: S
 # door: D, stair

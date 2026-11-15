@@ -393,6 +393,8 @@ def cell015():
               (_wall_x(3.8, 0.3, 1) - 0.22, 3.8)])
     g = c.lights[0]
     keylight = f"1.0,0.72,0.42,2.0 ; {g[0]:.2f},{g[1]:.2f},{g[2]:.2f}"
+    from gen_basic_cells import dark_mine
+    dark_mine(c)
     return c, c.manifest("gunyagunya-doukutsu", "0.64,0.59,0.50,0.5",
                          keylight, ["N", "S"])
 

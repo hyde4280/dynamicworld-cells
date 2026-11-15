@@ -16,7 +16,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from gen_basic_cells import Cave, make_atlas  # noqa: E402
+from gen_basic_cells import Cave, make_atlas, dark_mine  # noqa: E402
 
 H = 6.0
 LX, LZ = 0.0, 4.62            # ladder axis
@@ -87,6 +87,7 @@ def cell012():
     c.stalagmites([(-3.4, -3.2), (3.5, -2.6)])
     c.crystals(-3.8, 2.8)
     c.rubble([(3.2, 3.0), (-2.6, -1.6)])
+    dark_mine(c)
     m = c.manifest("hashigo-no-doukutsu-portal", "0.6,0.66,0.8,0.55",
                    "0.85,0.92,1.0,1.9 ; 0,4.4,-1", ["S", "U, portal"])
     m.append("# portal: U, %s,%s,%s" % PORTAL)
@@ -112,6 +113,7 @@ def cell013():
     c.crystals(3.6, 3.2)
     c.stalagmites([(-3.5, 3.0), (3.4, -3.0)])
     c.rubble([(-2.8, -2.4), (2.4, 1.2)])
+    dark_mine(c)
     m = c.manifest("hashigo-no-ue-portal", "0.6,0.66,0.8,0.55",
                    "0.85,0.92,1.0,1.7 ; 0,3.2,0", ["N", "S", "D, portal"])
     m.append("# portal: D, %s,%s,%s" % PORTAL)

@@ -5,6 +5,9 @@
 # cell.lightvolume: 0.6,0.66,0.8,0.55
 # cell.keylight: 0.85,0.92,1.0,1.7 ; 0,3.2,0
 # cell.lights: -4.02,2.16,0, 1,0.72,0.42,2,0.35 ; 4.02,2.16,-1.5, 1,0.72,0.42,2,0.35
+# cell.baselight: 0.12
+# cell.fog: 3, 10
+# cell.glow: 0.6667,0,1,0.5, 1.3
 # door: N
 # door: S
 # door: D, portal
