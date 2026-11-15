@@ -48,6 +48,17 @@ def validate(path):
     # raised on the loader side; the validator follows the scene pool.
     if len(cols) > 32:
         errs.append(f"colliders {len(cols)} > pool 32")
+    # Portal arrival headroom (dynamicworld 2026-11-15): a portal point is also the
+    # arrival point; with a 6 m pitch the upper cell's floor is at y=6, so the point must
+    # leave 2 m of clearance (y <= 4.0), or the player is pushed up into the upper cell.
+    for m in manifest:
+        if m.startswith("# portal:"):
+            try:
+                py = float(m.split(":", 1)[1].split(",")[3])
+                if py > 4.0:
+                    errs.append(f"portal y={py} leaves < 2 m headroom under a 6 m pitch")
+            except (IndexError, ValueError):
+                errs.append("bad portal line: " + m)
     doors = [m.split(":", 1)[1].strip() for m in manifest if m.startswith("# door:")]
     for d in doors:
         if d.split(",")[0].strip() not in ("N", "E", "S", "W", "U", "D"):
