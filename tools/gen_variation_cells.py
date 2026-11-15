@@ -187,12 +187,15 @@ def cell014():
         c.corridor(x0, x1, z0, z1)
     for f in "NESW":
         c.door(f)
+    c.lantern(2.6, 2.0, 0, -1)    # north wall of the north plaza
+    c.lantern(2.6, -4.0, 0, 1)    # south wall of the south plaza
+    c.tiling = ("rock", 2.0, REGIONS_HALF["rock"])
     c.stalactites([(0, 3.5), (2.6, 0.9), (2.6, -2.2), (-4.0, 0.7), (0, -3.6)])
     c.stalagmites([(-1.2, 3.6), (3.75, -1.6), (1.2, -4.3)])
     c.crystals(3.55, 1.55)
     c.rubble([(1.35, 4.4), (-2.9, 2.6), (3.7, -3.7)])
     return c, c.manifest("kuichigai-jujiro-doukutsu", "0.66,0.60,0.50,0.5",
-                         "1.0,0.72,0.42,1.7 ; 0,3.4,0", ["N", "E", "S", "W"])
+                         "1.0,0.72,0.42,2.0 ; 2.6,2.16,1.22", ["N", "E", "S", "W"])
 
 
 CELLS = [(14, cell014)]
