@@ -20,8 +20,9 @@ from gen_basic_cells import Cave, make_atlas  # noqa: E402
 
 H = 6.0
 LX, LZ = 0.0, 4.62            # ladder axis
-HX0, HX1, HZ0 = -0.65, 0.65, 3.95   # hatch x range, south edge (north edge is the wall)
-PORTAL = (0.0, 0.0, 3.4)      # floor point in front of the ladder (both cells)
+HX0, HX1, HZ0 = -0.65, 0.65, 4.15   # hatch x range, south edge (north edge is the wall)
+PORTAL = (0.0, 0.0, 3.7)      # floor point in front of the ladder (both cells)
+WH = H - 0.02                 # wall tops stay below the 6.0 floor of the cell above
 RIM = 4.8                     # inner face of the rim walls
 
 
@@ -32,28 +33,28 @@ def walls(c, gaps):
     for face in ("N", "S"):
         z = RIM + 0.1 if face == "N" else -(RIM + 0.1)
         if face in gaps:
-            b.box((-3.0, H / 2, z), (4.0, H, 0.2), "rock", skip=("bottom",))
-            b.box((3.0, H / 2, z), (4.0, H, 0.2), "rock", skip=("bottom",))
-            b.box((0, 3.0 + (H - 3.0) / 2, z), (2.08, H - 3.0, 0.2), "rock", skip=("bottom",))
+            b.box((-3.0, WH / 2, z), (4.0, WH, 0.2), "rock", skip=("bottom",))
+            b.box((3.0, WH / 2, z), (4.0, WH, 0.2), "rock", skip=("bottom",))
+            b.box((0, 3.0 + (WH - 3.0) / 2, z), (2.08, WH - 3.0, 0.2), "rock", skip=("bottom",))
             for s in (-1, 1):
                 b.box((s * 1.12, 1.56, z + (0.02 if face == "S" else -0.02)), (0.2, 3.12, 0.3), "wood", skip=("bottom",))
             b.box((0, 3.3, z + (0.02 if face == "S" else -0.02)), (2.4, 0.6, 0.3), "wood")
         else:
-            b.box((0, H / 2, z), (10.0, H, 0.2), "rock", skip=("bottom",))
+            b.box((0, WH / 2, z), (10.0, WH, 0.2), "rock", skip=("bottom",))
     for sx in (-1, 1):
-        b.box((sx * (RIM + 0.1), H / 2, 0), (0.2, H, 9.6), "rock", skip=("bottom",))
+        b.box((sx * (RIM + 0.1), WH / 2, 0), (0.2, WH, 9.6), "rock", skip=("bottom",))
 
 
-def ceiling_with_hatch(c, top, thick, hole):
-    """Ceiling slab (or floor slab when hole is for the cell above's floor) as
-    boxes around the hatch. The hatch touches the north wall."""
+def ceiling_with_hatch(c, top, thick, margin=0.0, span=RIM):
+    """Slab (ceiling of cell012 / floor of cell013) as boxes around the hatch. The hatch
+    touches the north wall. margin / span differ between the two cells so that the side
+    faces of the stacked slabs are not coplanar (Z-fighting between cells)."""
     b = c.b
     y = top - thick / 2
-    # west / east of the hatch, full depth
-    b.box(((-RIM + HX0) / 2, y, 0), (HX0 + RIM, thick, 2 * RIM), "rock")
-    b.box(((RIM + HX1) / 2, y, 0), (RIM - HX1, thick, 2 * RIM), "rock")
-    # south of the hatch between the two
-    b.box((0, y, (-RIM + HZ0) / 2), (HX1 - HX0, thick, HZ0 + RIM), "rock")
+    x0, x1, z0 = HX0 - margin, HX1 + margin, HZ0 + margin
+    b.box(((-span + x0) / 2, y, 0), (x0 + span, thick, 2 * span), "rock")
+    b.box(((span + x1) / 2, y, 0), (span - x1, thick, 2 * span), "rock")
+    b.box((0, y, (-span + z0) / 2), (x1 - x0, thick, z0 + span), "rock")
 
 
 def ladder(c, y0, y1, rail_w=0.07, skip_bottom=False):
@@ -75,7 +76,7 @@ def cell012():
     b.box((0, 0.011, -0.45), (2.4, 0.022, 8.7), "path", skip=("bottom", "px", "nx", "pz", "nz"))
     walls(c, {"S"})
     # ceiling slab 5.68..5.98: its top stays below the floor top (6.0) of cell013
-    ceiling_with_hatch(c, H - 0.02, 0.3, True)
+    ceiling_with_hatch(c, H - 0.02, 0.3)
     ladder(c, 0.0, H - 0.02)
     # tied to the rim wall by two brackets
     for y in (1.8, 4.2):
@@ -96,7 +97,7 @@ def cell013():
     c = Cave()
     b = c.b
     # floor slab -0.1..0 as boxes around the hatch (so the hole is visible)
-    ceiling_with_hatch(c, 0.0, 0.1, True)
+    ceiling_with_hatch(c, 0.0, 0.1, margin=0.03, span=RIM + 0.05)
     b.box((0, 0.011, -0.45), (2.4, 0.022, 8.7), "path", skip=("bottom", "px", "nx", "pz", "nz"))
     walls(c, {"N", "S"})
     b.box((0, H - 0.17, 0), (9.6, 0.3, 9.6), "rock")      # ceiling slab 5.68..5.98
