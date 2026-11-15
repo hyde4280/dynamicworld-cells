@@ -341,12 +341,15 @@ def cell015():
     # --- end walls (beside the mouth) and outer shell ------------------
     for s, zn in ((1, 5.0), (-1, -5.0)):
         n = [(0, 0, -s)] * 4
+        # The sheet is set 4 cm inside the rim: at exactly +-5 it was coplanar with the
+        # neighbouring cell's outer face and Z-fought it (cross-cell check, 2026-11-15).
+        zq = zn - s * 0.04
         if s == 1:   # winding normal must be -z (into the cell)
-            left = [(-1.5, 0, zn), (-5, 0, zn), (-5, 4, zn), (-1.5, 4, zn)]
-            right = [(5, 0, zn), (1.5, 0, zn), (1.5, 4, zn), (5, 4, zn)]
+            left = [(-1.5, 0, zq), (-5, 0, zq), (-5, 4, zq), (-1.5, 4, zq)]
+            right = [(5, 0, zq), (1.5, 0, zq), (1.5, 4, zq), (5, 4, zq)]
         else:        # winding normal +z
-            left = [(-5, 0, zn), (-1.5, 0, zn), (-1.5, 4, zn), (-5, 4, zn)]
-            right = [(1.5, 0, zn), (5, 0, zn), (5, 4, zn), (1.5, 4, zn)]
+            left = [(-5, 0, zq), (-1.5, 0, zq), (-1.5, 4, zq), (-5, 4, zq)]
+            right = [(1.5, 0, zq), (5, 0, zq), (5, 4, zq), (1.5, 4, zq)]
         b.quad(left, n, "rock")
         b.quad(right, n, "rock")
         c.colliders.append((-3.25, 2.0, zn, 3.5, 4.0, 0.6))
