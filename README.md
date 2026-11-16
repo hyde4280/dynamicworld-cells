@@ -40,6 +40,7 @@ VRChat ワールド向けセルローダー **Cell Loader (Dynamic World)** の�
 | cell016 | hokora-no-ma（祠の間） | OBJ・PNG（512×512）。914 tris、コライダー 15。ダンジョン用の部屋セル：扉 S のみ（行き止まり）。7 m × 6.5 m の間（天井 5 m）の奥に祭壇の龕。祭壇前に `# switch:`（仕掛けスイッチの位置。提案中の行）。ランタン 2 基＋祭壇の火、lights/tiling 付き |
 | cell017 | hiroma（広間） | OBJ・PNG（512×512）。1,326 tris、コライダー 18。ダンジョン用の部屋セル：扉 N/S。8.4 m 四方・天井 5.3 m、柱 4 本。`# spawn:`（敵の出現点。提案中の行）5 点。ランタン 4 基、lights/tiling 付き |
 | cell018 | takibi-no-ma（焚き火の間） | OBJ・PNG（512×512）。1,342 tris、コライダー 19。ダンジョン用の部屋セル：扉 N/S、`# cell.save: 1`（セーブポイント）。6 m 四方の間の中央に焚き火、東西に低い寝床の龕。焚き火＋ランタン 2 基、lights/tiling 付き |
+| cell019 | asa-no-ma（朝の間） | OBJ・PNG（512×512）。1,092 tris、コライダー 11。ダンジョン用の部屋セル（エンディング）：扉 S のみ（行き止まり）。8.4 m × 7.2 m の明るい間（`# cell.baselight: 0.45`、`# cell.fog: 12, 40`、光源 4 基）で、中央の円形の台座に火床の石鉢。鉢の位置に `# switch: 0,1.0,0`（種火を置く＝エンディングのフラグ）。光の筋（淡い縦の板、見た目のみ）と足元の光だまり付き |
 
 ## ワールド定義
 
@@ -48,7 +49,7 @@ VRChat ワールド向けセルローダー **Cell Loader (Dynamic World)** の�
 | ファイル | 内容 |
 |---|---|
 | `defs/stagetest.txt` | テスト用ワールド（12 ノード） |
-| `defs/mine01.txt` | ダンジョン mine01「灯の坑」（三層 26 ノード） |
+| `defs/mine01.txt` | ダンジョン mine01「灯の坑」（三層 26 ノード＋エンディング 1 ノード、rev 2） |
 
 検査: `python3 tools/check_def.py defs/mine01.txt --map`（定義とセルの整合・到達性・鍵の順序）、`python3 tools/check_pair_overlap.py defs/mine01.txt --all`（隣り合うセル間の Z ファイト）。
 

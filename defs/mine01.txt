@@ -1,13 +1,15 @@
 # mine01 "Tomoshibi no Ana" (dynamicworld docs/DUNGEON_DESIGN.md section 2).
 # Three layers: upper y=2 (u*), middle y=1 (m*), deep y=0 (d*).
 # Flags: 1 = upper shrine switch (u4), 2 = hall cleared (m6), 3 = deep hall cleared (d2),
-#        4 = middle shrine switch (m4; opens the ladder shortcut u8 - m9).
+#        4 = middle shrine switch (m4; opens the ladder shortcut u8 - m9),
+#        5 = the ember taken at the deep shrine (d3) = the key that opens the ending
+#            door at u6.S, 6 = the ending, set by the dais switch in e0.
 # Node attributes after the rotation (switch= / spawn= / clear=) are proposals; loaders
 # that do not know them ignore the extra fields. Comments must be whole lines: the
 # loader does not strip a trailing "#".
 spec.version: 1
 world.name: mine01
-world.rev: 1
+world.rev: 2
 world.mode: fixed
 world.multiplayer: phase
 world.root: u0
@@ -44,6 +46,9 @@ node: d1, cell008, 0,0,-8, 0
 node: d2, cell017, 0,0,-9, 0, spawn=eater:2, spawn=bug:2, clear=3
 node: d3, cell016, 0,0,-10, 2, switch=5
 
+# --- ending (y=2): the dawn hall north of the stair-top landing u6 (flag 6) ---
+node: e0, cell019, 0,2,-2, 2, switch=6
+
 # upper
 edge: u0.N, u1.S
 edge: u1.N, u2.S
@@ -54,6 +59,7 @@ edge: u0.E, u5.E
 edge: u0.W, u7.E
 edge: u7.S, u8.N
 edge: u0.S, u6.N, key=1
+edge: u6.S, e0.S, key=5
 
 # upper - middle
 edge: m0.U, u6.D

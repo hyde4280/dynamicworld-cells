@@ -237,8 +237,63 @@ def cell018():
     return c, c.finish("takibi-no-ma", "0.64,0.57,0.48,0.5", ["N", "S"])
 
 
-CELLS = [(16, cell016), (17, cell017), (18, cell018)]
-HEADERS = {16: "# CELL16 dungeon room (shrine) - see DUNGEON_DESIGN.md (dynamicworld)",
+# ---------------------------------------------------------------------------
+# cell019: ending / dawn hall (dead end: door S). A calm, bright 8.4 m x 7.2 m
+# room, the reward after the last key: warm light, long sight, shafts of light
+# (pale vertical quads, visual only). A round dais in the centre carries a
+# pedestal with an unlit stone bowl: the ember is placed there. The switch point
+# is the bowl (the host places the FlagSwitch; the flag number is the world
+# definition's business, e0 switch=6 in mine01).
+# ---------------------------------------------------------------------------
+def cell019():
+    c = Room()
+    b = c.b
+    # bright room: high base light, long sight distance (the mine cells use 0.12 / 3..10)
+    c.baselight = 0.45
+    c.fog = (12.0, 40.0)
+    c.floor_slab()
+    c.open_area(-1.5, 1.5, -5.0, -3.0, 4.0)              # south arm
+    c.open_area(-4.2, 4.2, -3.0, 4.2, 5.4, path=False)   # hall (stone floor)
+    c.close_rock()
+    c.door("S")
+    # worn strip from the door to the dais
+    b.box((0, 0.011, -2.5), (1.6, 0.022, 1.0), "path",
+          skip=("bottom", "px", "nx", "pz", "nz"))
+    # dais: two low round inlays (visual; the floor stays at 0)
+    b.cylinder((0, 0.04, 0), 2.1, 2.1, 0.08, 24, "floor", cap=True)
+    b.cylinder((0, 0.1, 0), 1.5, 1.5, 0.12, 24, "path", cap=True)
+    # pedestal and stone bowl (the ember goes in here), unlit
+    b.cylinder((0, 0.4, 0), 0.5, 0.36, 0.7, 12, "rock", cap=False)
+    c.colliders.append((0, 0.4, 0, 0.9, 0.8, 0.9))
+    b.cylinder((0, 0.88, 0), 0.34, 0.5, 0.3, 12, "rock", cap=False)     # bowl
+    b.cylinder((0, 0.9, 0), 0.3, 0.3, 0.02, 12, "soot" if "soot" in b.regions else "wood", cap=True)  # dark bowl floor
+    # four shafts of light: crossed thin glow quads from the ceiling, a patch on the floor
+    for (x, z) in ((-2.9, 2.3), (2.9, 2.3), (-2.9, -1.4), (2.9, -1.4)):
+        b.box((x, 2.7, z), (0.8, 5.3, 0.03), "glow", skip=("top", "bottom"))
+        b.box((x, 2.7, z), (0.03, 5.3, 0.8), "glow", skip=("top", "bottom"))
+        b.box((x, 0.03, z), (1.0, 0.01, 1.0), "glow", skip=("bottom", "px", "nx", "pz", "nz"))
+    # crates, rubble, crystals
+    c.solid((3.6, 0.3, 3.5), (0.6, 0.6, 0.6), "wood")
+    c.solid((3.5, 0.35, 2.8), (0.7, 0.7, 0.7), "wood")
+    b.box((3.6, 0.85, 3.4), (0.5, 0.5, 0.5), "wood", rot=(0, 20, 0), skip=("bottom",))
+    c.solid((-3.6, 0.3, -2.3), (0.6, 0.6, 0.6), "wood")
+    c.crystals(-3.5, 3.5, n=3)
+    c.crystals(3.6, -2.2, n=2)
+    c.crystals(0.0, 3.8, n=3)
+    c.stalagmites([(-3.8, 0.4), (3.8, 0.6)])
+    c.stones([(-3.0, 3.4), (2.6, 3.6), (-1.3, -2.6), (1.5, -2.7), (3.7, 1.2), (-3.7, -0.6)], seed=19)
+    # warm light: the dawn at the centre and over the two corners
+    c.light(0, 3.6, 0, 1.8, 0.0, rgb=(1.0, 0.88, 0.62))
+    c.light(-3.0, 3.2, 2.3, 1.2, 0.0, rgb=(1.0, 0.9, 0.7))
+    c.light(3.0, 3.2, 2.3, 1.2, 0.0, rgb=(1.0, 0.9, 0.7))
+    c.light(0, 3.0, -3.8, 0.9, 0.0, rgb=(1.0, 0.86, 0.6))
+    c.extra.append("# switch: 0,1.0,0")
+    return c, c.finish("asa-no-ma", "0.86,0.80,0.68,0.55", ["S"])
+
+
+CELLS = [(16, cell016), (17, cell017), (18, cell018), (19, cell019)]
+HEADERS = {19: "# CELL19 dungeon room (ending, dawn hall) - see DUNGEON_DESIGN.md (dynamicworld)",
+16: "# CELL16 dungeon room (shrine) - see DUNGEON_DESIGN.md (dynamicworld)",
            17: "# CELL17 dungeon room (hall) - see DUNGEON_DESIGN.md (dynamicworld)",
            18: "# CELL18 dungeon room (campfire, save point) - see DUNGEON_DESIGN.md (dynamicworld)"}
 
