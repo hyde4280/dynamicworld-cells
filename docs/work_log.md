@@ -226,3 +226,4 @@ ClientSim で defs/mine01.txt を通して歩いた結果、データ側の不�
 - cell015: 外殻の岩の箱が x=±5.05（幅 0.1）で、セルの外（±5.1）へはみ出していた。±4.93（リムの 2cm 内側）へ移し、cell015↔cell008 の重なり 1.80 m^2 が解消した。
 - 検査: check_cell は 006〜011・014〜019 すべて OK、check_overlap は 0.00 m^2、check_def.py defs/mine01.txt は OK、check_pair_overlap.py defs/mine01.txt --all の残りは cell010↔011 の側面 6.27 m^2（公開済みの階段セルの既知分）のみ。
 - 未確認: Unity での見た目（隙間が消えたか・床の質感・階段セルの明るさとランタン位置が壁や階段の中に入っていないか。ライトは解析的なので入っていても描画は壊れないが明るさは偏る）。
+- 2026-11-16 テクスチャ追加修正: cell010/011 のアトラス（旧 blobs の迷彩状の岩・色斑の床）を `tools/repaint_stair_atlas.py`（冪等）で描き直した。3x2 グリッド配置（OBJ の UV は無変更）のまま rock=CC0 岩写真、floor/path=暗い石・踏み固めた土（`atlas_common.paint_calm_floor_path`、輝度のみのノイズ）に置換、wood/crystal/glow は据え置き。cell015 は `gen_variation_cells.py` が `make_atlas_dungeon` を使うようにして床の紙吹雪を解消（OBJ は不変）。cell010/015 の .png.b64 も更新。check_cell 010/011/015 OK、check_def mine01 OK。未確認: Unity での実際の見た目。

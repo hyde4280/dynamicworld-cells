@@ -25,7 +25,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from atlas_common import REGIONS_HALF, make_atlas_rock
+from atlas_common import REGIONS_HALF, make_atlas_rock, make_atlas_dungeon
 from gen_basic_cells import Cave
 
 
@@ -414,5 +414,7 @@ if __name__ == "__main__":
         cave, manifest = fn()
         tris = cave.b.write_obj(
             os.path.join(out, f"cell{num:03d}.obj"), manifest, HEADERS[num])
-        make_atlas_rock(os.path.join(out, f"cell{num:03d}.png"), seed=600 + num)
+        # cell015 (m2): calm dark floor (2026-11-16); the others keep the older atlas
+        (make_atlas_dungeon if num == 15 else make_atlas_rock)(
+            os.path.join(out, f"cell{num:03d}.png"), seed=600 + num)
         print(f"cell{num:03d}: tris={tris} colliders={len(cave.colliders)}")

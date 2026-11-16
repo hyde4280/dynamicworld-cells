@@ -165,18 +165,14 @@ def make_atlas_rock(path, seed, regions=REGIONS_HALF):
     p.save(path)
 
 
-def make_atlas_dungeon(path, seed, regions=REGIONS_HALF):
-    """Atlas of the dungeon room cells 016-019 (2026-11-16 fix). Same as
-    make_atlas_rock, but the floor and path regions are calm dark stone / packed
-    dirt painted like the tunnel cells' dirt (minekit.make_atlas): smooth shading
-    fields plus luminance-only pebbles. The old per-channel random speckle read
-    as colour confetti when the floor was magnified."""
+def paint_calm_floor_path(p, seed):
+    """Repaint the floor (dark stone slabs) and path (packed dirt) regions of
+    painter p with calm, luminance-only shading (shared by make_atlas_dungeon and
+    repaint_stair_atlas.py)."""
     import random
     from PIL import Image, ImageDraw
     from minekit import _field, _shade
     rng = random.Random(seed)
-    p = AtlasPainter(512, regions, seed=seed)
-    rock_photo(p)
     S = 256
 
     def paste(name, tile):
@@ -206,6 +202,17 @@ def make_atlas_dungeon(path, seed, regions=REGIONS_HALF):
         d.ellipse([x - r, y - r * 0.8, x + r, y + r * 0.8], fill=(98 + g, 84 + g, 68 + g))
     paste("path", t)
 
+
+
+def make_atlas_dungeon(path, seed, regions=REGIONS_HALF):
+    """Atlas of the dungeon room cells 016-019 (2026-11-16 fix). Same as
+    make_atlas_rock, but the floor and path regions are calm dark stone / packed
+    dirt painted like the tunnel cells' dirt (minekit.make_atlas): smooth shading
+    fields plus luminance-only pebbles. The old per-channel random speckle read
+    as colour confetti when the floor was magnified."""
+    p = AtlasPainter(512, regions, seed=seed)
+    rock_photo(p)
+    paint_calm_floor_path(p, seed)
     p.planks("wood", (104, 72, 42), (70, 47, 27))
     p.gradient("crystal", (132, 198, 188), (42, 96, 90), speckle_n=200)
     p.gradient("glow", (255, 196, 96), (196, 108, 36), speckle_n=200)
