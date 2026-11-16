@@ -126,7 +126,10 @@ class Cave:
                 # segment tops it Z-fought (both up-facing at y=3.0)
                 b.box((s * 1.3, 1.56, zp), (0.22, 3.12, 0.3), "wood", skip=("bottom",))
             b.box((0, 3.3, z), (3.0, 0.6, 0.3), "wood")
-            b.box((0, 3.85, z), (3.0, 0.3, 0.3), "rock")
+            # rock lintel 3.6..4.0 sits directly on the wood lintel (wood top is
+            # 3.6): no 10 cm see-through slit (fixed 2026-11-16); its bottom face
+            # is skipped (it would only touch the wood top)
+            b.box((0, 3.8, z), (3.0, 0.4, 0.3), "rock", skip=("bottom",))
         else:
             x = 4.83 if face == "E" else -4.83
             xp = 4.8 if face == "E" else -4.8
@@ -136,7 +139,7 @@ class Cave:
                 self.colliders.append((x, 1.5, cz, 0.3, 3.0, 0.5))
                 b.box((xp, 1.56, s * 1.3), (0.3, 3.12, 0.22), "wood", skip=("bottom",))
             b.box((x, 3.3, 0), (0.3, 0.6, 3.0), "wood")
-            b.box((x, 3.85, 0), (0.3, 0.3, 3.0), "rock")
+            b.box((x, 3.8, 0), (0.3, 0.4, 3.0), "rock", skip=("bottom",))
 
     def stalactites(self, pts, ceil_y=4.0):
         for x, z in pts:

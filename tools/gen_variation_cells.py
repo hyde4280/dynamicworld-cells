@@ -356,8 +356,8 @@ def cell015():
         c.colliders.append((3.25, 2.0, zn, 3.5, 4.0, 0.6))
         c.colliders.append((0, 3.5, zn, 3.0, 1.0, 0.6))
     b.box((0, 4.05, 0), (10, 0.1, 10), "rock", skip=("bottom",))  # roof cap
-    b.box((-5.05, 2.0, 0), (0.1, 4.0, 10), "rock", skip=("px", "bottom"))
-    b.box((5.05, 2.0, 0), (0.1, 4.0, 10), "rock", skip=("nx", "bottom"))
+    b.box((-4.93, 2.0, 0), (0.1, 4.0, 10), "rock", skip=("px", "bottom"))  # 2 cm inside the rim (was -5.05: poked out of the cell)
+    b.box((4.93, 2.0, 0), (0.1, 4.0, 10), "rock", skip=("nx", "bottom"))
 
     # --- per-segment wall colliders from the sampled profile -----------
     for k in range(10):

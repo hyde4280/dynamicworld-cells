@@ -25,7 +25,7 @@ import random
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from atlas_common import REGIONS_HALF, make_atlas_rock  # noqa: E402
+from atlas_common import REGIONS_HALF, make_atlas_dungeon  # noqa: E402
 from gen_basic_cells import Cave, _rect_subtract, _n, dark_mine  # noqa: E402
 from gen_variation_cells import rock_complement, collider_rects  # noqa: E402
 
@@ -309,5 +309,5 @@ if __name__ == "__main__":
         k = next(i for i, ln in enumerate(manifest) if ln.startswith("# door:"))
         manifest.insert(k, f"# cell.tris: {ntris}")
         room.b.write_obj(os.path.join(out, f"cell{num:03d}.obj"), manifest, HEADERS[num])
-        make_atlas_rock(os.path.join(out, f"cell{num:03d}.png"), seed=600 + num)
+        make_atlas_dungeon(os.path.join(out, f"cell{num:03d}.png"), seed=600 + num)
         print(f"cell{num:03d}: tris={ntris} colliders={len(room.colliders)}")

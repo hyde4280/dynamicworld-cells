@@ -1,11 +1,12 @@
 # CELL10 basic pattern cave - see MULTI_CELL_DESIGN.md (dynamicworld)
 # cell.name: kaidan-no-doukutsu
 # cell.version: 0
-# cell.ambient: 0.6,0.66,0.8,0.55
-# cell.lightvolume: 0.6,0.66,0.8,0.55
-# cell.keylight: 0.85,0.92,1.0,1.9 ; 0,4.4,-1
-# cell.baselight: 0.3
+# cell.ambient: 0.62,0.55,0.46,0.5
+# cell.lightvolume: 0.55,0.45,0.34,0.3
+# cell.keylight: 1,0.7,0.4,2 ; 0,2.5,-3.7
+# cell.baselight: 0.12
 # cell.fog: 3, 10
+# cell.lights: 0,2.5,-3.7, 1,0.7,0.4,2,0.35 ; -3.6,3,0, 1,0.7,0.4,2,0.35 ; 0,4.3,3.7, 1,0.7,0.4,2,0.35 ; 0,5.3,0, 1,0.7,0.4,2,0.35
 # door: S
 # door: U, stair
 # collider: -3.6,1.4028,0.1795, 2.4,0.3,5.6604, -32.005,0,0

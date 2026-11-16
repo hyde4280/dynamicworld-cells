@@ -163,3 +163,50 @@ def make_atlas_rock(path, seed, regions=REGIONS_HALF):
     p.gradient("crystal", (132, 198, 188), (42, 96, 90), speckle_n=200)
     p.gradient("glow", (255, 196, 96), (196, 108, 36), speckle_n=200)
     p.save(path)
+
+
+def make_atlas_dungeon(path, seed, regions=REGIONS_HALF):
+    """Atlas of the dungeon room cells 016-019 (2026-11-16 fix). Same as
+    make_atlas_rock, but the floor and path regions are calm dark stone / packed
+    dirt painted like the tunnel cells' dirt (minekit.make_atlas): smooth shading
+    fields plus luminance-only pebbles. The old per-channel random speckle read
+    as colour confetti when the floor was magnified."""
+    import random
+    from PIL import Image, ImageDraw
+    from minekit import _field, _shade
+    rng = random.Random(seed)
+    p = AtlasPainter(512, regions, seed=seed)
+    rock_photo(p)
+    S = 256
+
+    def paste(name, tile):
+        x0, y0, x1, y1 = (int(round(v)) for v in p.px(name))
+        p.img.paste(tile.resize((x1 - x0, y1 - y0)), (x0, y0))
+
+    # floor: dark stone slabs, no hue noise (pebbles shift all channels equally)
+    t = _shade((74, 66, 56), [(_field(rng, S, S, 6, 6), 0.5), (_field(rng, S, S, 24, 24), 0.3),
+                              (_field(rng, S, S, 96, 96), 0.2)], 0.65, 1.15)
+    d = ImageDraw.Draw(t)
+    for k in range(1, 4):                       # faint joints, darker only
+        d.line([S * k / 4, 0, S * k / 4, S], fill=(46, 41, 35), width=2)
+        d.line([0, S * k / 4, S, S * k / 4], fill=(46, 41, 35), width=2)
+    for _ in range(200):
+        x, y, r = rng.uniform(0, S), rng.uniform(0, S), rng.uniform(0.8, 3.0)
+        g = rng.randint(-18, 20)
+        d.ellipse([x - r, y - r * 0.8, x + r, y + r * 0.8], fill=(76 + g, 68 + g, 58 + g))
+    paste("floor", t)
+
+    # path: packed dirt (minekit dirt)
+    t = _shade((92, 74, 54), [(_field(rng, S, S, 6, 6), 0.5), (_field(rng, S, S, 24, 24), 0.3),
+                              (_field(rng, S, S, 96, 96), 0.2)], 0.6, 1.2)
+    d = ImageDraw.Draw(t)
+    for _ in range(260):
+        x, y, r = rng.uniform(0, S), rng.uniform(0, S), rng.uniform(0.8, 3.2)
+        g = rng.randint(-26, 30)
+        d.ellipse([x - r, y - r * 0.8, x + r, y + r * 0.8], fill=(98 + g, 84 + g, 68 + g))
+    paste("path", t)
+
+    p.planks("wood", (104, 72, 42), (70, 47, 27))
+    p.gradient("crystal", (132, 198, 188), (42, 96, 90), speckle_n=200)
+    p.gradient("glow", (255, 196, 96), (196, 108, 36), speckle_n=200)
+    p.save(path)
