@@ -9,7 +9,7 @@ spec.version: 1
 world.name: mine01
 world.rev: 1
 world.mode: fixed
-world.multiplayer: solo
+world.multiplayer: phase
 world.root: u0
 
 # --- upper layer (y=2): entrance, campfire, shrine (flag 1) ---
