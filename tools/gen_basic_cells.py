@@ -22,6 +22,13 @@ REGIONS = grid_regions(["rock", "floor", "path", "wood", "crystal", "glow"], 3, 
 CW = 1.5  # corridor half width
 
 
+def dark_mine(c, base=0.12):
+    """Lighting of the mine cells: dark base, 10 m sight distance, lit lantern glass."""
+    c.baselight = base
+    c.fog = (3.0, 10.0)
+    c.glow = (c.b.regions["glow"], 1.3)
+
+
 def _n(v):
     """Compact number formatting for manifest lines (2.0 -> '2')."""
     s = f"{v:.3f}".rstrip("0").rstrip(".")
@@ -64,6 +71,10 @@ class Cave:
         self._corridor_rects = []
         self.lights = []    # (x, y, z, r, g, b, intensity, flicker)
         self.tiling = None  # (region name, tile size m, (u0, v0, u1, v1))
+        # dark-mine lighting (dynamicworld MULTI_CELL_SPEC section 2, 2026-11-16)
+        self.baselight = None   # float: unlit base brightness
+        self.fog = None         # (start m, end m): sight distance
+        self.glow = None        # ((u0, v0, u1, v1), gain): atlas rect that stays lit
 
     # -- pieces ---------------------------------------------------------
     def rock_block(self, x0, x1, z0, z1, h=4.0, collider=True):
@@ -113,7 +124,10 @@ class Cave:
                 # segment tops it Z-fought (both up-facing at y=3.0)
                 b.box((s * 1.3, 1.56, zp), (0.22, 3.12, 0.3), "wood", skip=("bottom",))
             b.box((0, 3.3, z), (3.0, 0.6, 0.3), "wood")
-            b.box((0, 3.85, z), (3.0, 0.3, 0.3), "rock")
+            # rock lintel 3.6..4.0 sits directly on the wood lintel (wood top is
+            # 3.6): no 10 cm see-through slit (fixed 2026-11-16); its bottom face
+            # is skipped (it would only touch the wood top)
+            b.box((0, 3.8, z), (3.0, 0.4, 0.3), "rock", skip=("bottom",))
         else:
             x = 4.83 if face == "E" else -4.83
             xp = 4.8 if face == "E" else -4.8
@@ -123,7 +137,7 @@ class Cave:
                 self.colliders.append((x, 1.5, cz, 0.3, 3.0, 0.5))
                 b.box((xp, 1.56, s * 1.3), (0.3, 3.12, 0.22), "wood", skip=("bottom",))
             b.box((x, 3.3, 0), (0.3, 0.6, 3.0), "wood")
-            b.box((x, 3.85, 0), (0.3, 0.3, 3.0), "rock")
+            b.box((x, 3.8, 0), (0.3, 0.4, 3.0), "rock", skip=("bottom",))
 
     def stalactites(self, pts, ceil_y=4.0):
         for x, z in pts:
@@ -192,6 +206,14 @@ class Cave:
         if self.tiling is not None:
             tname, tsize, (u0, v0, u1, v1) = self.tiling
             lines.append(f"# cell.tiling: {tname}, {_n(tsize)}, {_n(u0)},{_n(v0)},{_n(u1)},{_n(v1)}")
+        if self.baselight is not None:
+            lines.append(f"# cell.baselight: {_n(self.baselight)}")
+        if self.fog is not None:
+            lines.append(f"# cell.fog: {_n(self.fog[0])}, {_n(self.fog[1])}")
+        if self.glow is not None:
+            # 4 decimals, like the vt lines: the rect must not cut the faces on its edge
+            lines.append("# cell.glow: " + ",".join(f"{v:.4f}".rstrip("0").rstrip(".") or "0" for v in self.glow[0])
+                         + f", {_n(self.glow[1])}")
         lines += [f"# door: {d}" for d in doors]
         lines += [f"# collider: {c[0]},{c[1]},{c[2]}, {c[3]},{c[4]},{c[5]}"
                   for c in self.colliders]
@@ -269,7 +291,7 @@ def cell009():
     c.rock_block(CW, 5, -5, -CW)          # south-east
     c.rock_block(CW, 5, CW, 5)            # north-east
     c.rock_block(-CW, CW, CW, 5)          # north centre (no N door)
-    c.rock_block(-5, -CW, -CW, CW)        # west centre (was missing: open pocket/hole west of the junction, fixed 2026-11-17)
+    c.rock_block(-5, -CW, -CW, CW)        # west (no W door): this pocket was left open before
     c.corridor(-CW, CW, -5, CW)
     c.corridor(-CW, 5, -CW, CW)
     for f in ("S", "E"):
