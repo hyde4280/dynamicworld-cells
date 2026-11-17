@@ -269,6 +269,7 @@ def cell009():
     c.rock_block(CW, 5, -5, -CW)          # south-east
     c.rock_block(CW, 5, CW, 5)            # north-east
     c.rock_block(-CW, CW, CW, 5)          # north centre (no N door)
+    c.rock_block(-5, -CW, -CW, CW)        # west centre (was missing: open pocket/hole west of the junction, fixed 2026-11-17)
     c.corridor(-CW, CW, -5, CW)
     c.corridor(-CW, 5, -CW, CW)
     for f in ("S", "E"):
