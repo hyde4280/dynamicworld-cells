@@ -163,9 +163,15 @@ class CellBuilder:
             for i in range(seg_u):
                 a, b = grid[j][i], grid[j][i + 1]
                 c, d2 = grid[j + 1][i + 1], grid[j + 1][i]
-                if j > 0:
+                # Pole bands (j == 0 and j == seg_v - 1): one of the two quad
+                # triangles has both pole vertices at the same position and is
+                # degenerate; emit only the real fan triangle so the caps close.
+                if j == 0:
                     self.faces.append((a, d2, c))
-                if j < seg_v - 1:
+                elif j == seg_v - 1:
+                    self.faces.append((a, c, b))
+                else:
+                    self.faces.append((a, d2, c))
                     self.faces.append((a, c, b))
 
     def room_shell(self, wall_region, floor_region, wall_h=4.0, beams=None, beam_region=None):
