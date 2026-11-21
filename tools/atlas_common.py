@@ -217,3 +217,100 @@ def make_atlas_dungeon(path, seed, regions=REGIONS_HALF):
     p.gradient("crystal", (132, 198, 188), (42, 96, 90), speckle_n=200)
     p.gradient("glow", (255, 196, 96), (196, 108, 36), speckle_n=200)
     p.save(path)
+
+
+# ---------------------------------------------------------------------------
+# Cell props: '# prop:' lines and the '# cell.lights' derived from the flames
+# (dynamicworld docs/PROTOTYPE_SPEC.md section 2.1, ADR 0015, Issue #52).
+#
+# Grammar (the loader's): '# prop: <kind>, x,y,z[, rotY][, key=value ...]', cell-local
+# metres, the position is the BASE of the flame (wick / top of the logs). The loader
+# rotates the slot root with the node's rot, so the generators write local coordinates
+# exactly as they do for '# cell.lights'. Kinds: torch / lantern / candle (cutout
+# flames, at most 8 placed per slot) and hearth (particle fire, at most 4 PC / 2 Quest
+# in the whole stage, nearest first). At most 16 '# prop:' lines per cell.
+#
+# Light rule (generator side only; the loader never makes a light from a prop):
+#   - every flame prop gets one point light, at the flame base + PROP_KINDS offset
+#     (x scale), or at `light_at` when the generator gives one (to keep an existing
+#     light where it was). Colour / intensity / flicker come from the caller.
+#   - a flame with flag= or lit= gets NO light: '# cell.lights' are static and would
+#     keep shining while the flame is hidden or out.
+#   - the cell's explicit non-flame lights (e.g. the dawn light of cell019) follow
+#     the flame lights.
+#   - the shader takes 4 lights. With more candidates, keep the 4 whose horizontal
+#     distance to the nearest anchor (the cell centre and the centre of each declared
+#     side door at 4.5 m) is smallest (ties: declaration order), then write them in
+#     declaration order. The first light is also the '# cell.keylight'.
+# ---------------------------------------------------------------------------
+PROP_KINDS = {
+    # kind: (family, light height above the flame base at scale 1)
+    "torch": ("cutout", 0.17),
+    "lantern": ("cutout", 0.10),
+    "candle": ("cutout", 0.05),
+    "hearth": ("particle", 0.6),
+}
+PROP_ATTRS = ("tint", "scale", "tilt", "flag", "lit", "len", "sound")
+MAX_PROPS = 16
+MAX_CUTOUT = 8
+MAX_LIGHTS = 4
+DOOR_ANCHORS = {"N": (0.0, 4.5), "S": (0.0, -4.5), "E": (4.5, 0.0), "W": (-4.5, 0.0)}
+
+
+def _pn(v):
+    s = f"{v:.3f}".rstrip("0").rstrip(".")
+    return s if s not in ("", "-0") else "0"
+
+
+def prop(kind, x, y, z, rot=None, light=None, light_at=None, **attrs):
+    """One prop. light = (r, g, b, intensity, flicker) for a flame that lights the
+    cell (None: no light); attrs are the key=value attributes (tint='#rrggbb', ...)."""
+    assert kind in PROP_KINDS, f"unknown prop kind {kind}"
+    for k in attrs:
+        assert k in PROP_ATTRS, f"unknown prop attribute {k}"
+    return {"kind": kind, "pos": (x, y, z), "rot": rot, "attrs": dict(attrs),
+            "light": light, "light_at": light_at}
+
+
+def prop_line(p):
+    x, y, z = p["pos"]
+    s = f"# prop: {p['kind']}, {_pn(x)},{_pn(y)},{_pn(z)}"
+    if p["rot"] is not None:
+        s += f", {_pn(p['rot'])}"
+    for k, v in p["attrs"].items():
+        s += f", {k}={_pn(v) if isinstance(v, float) else v}"
+    return s
+
+
+def prop_lines(props):
+    assert len(props) <= MAX_PROPS, f"{len(props)} props > {MAX_PROPS} per cell"
+    assert sum(PROP_KINDS[p["kind"]][0] == "cutout" for p in props) <= MAX_CUTOUT, \
+        f"more than {MAX_CUTOUT} cutout flames (the slot places only {MAX_CUTOUT})"
+    return [prop_line(p) for p in props]
+
+
+def flame_light(p):
+    """(x, y, z, r, g, b, intensity, flicker) of a flame prop, or None (see the rule)."""
+    if p["light"] is None or "flag" in p["attrs"] or "lit" in p["attrs"]:
+        return None
+    if p["light_at"] is not None:
+        lx, ly, lz = p["light_at"]
+    else:
+        x, y, z = p["pos"]
+        lx, ly, lz = x, y + PROP_KINDS[p["kind"]][1] * float(p["attrs"].get("scale", 1.0)), z
+    return (lx, ly, lz) + tuple(p["light"])
+
+
+def derive_lights(props, extra=(), doors=()):
+    """'# cell.lights' entries: flame lights in declaration order, then `extra`
+    (explicit non-flame lights), reduced to MAX_LIGHTS by the anchor rule above."""
+    cands = [lt for lt in (flame_light(p) for p in props) if lt is not None] + list(extra)
+    if len(cands) <= MAX_LIGHTS:
+        return cands
+    anchors = [(0.0, 0.0)] + [DOOR_ANCHORS[d[0]] for d in doors if d[:1] in DOOR_ANCHORS]
+
+    def score(i):
+        x, _, z = cands[i][:3]
+        return (min(((x - ax) ** 2 + (z - az) ** 2) ** 0.5 for ax, az in anchors), i)
+    keep = sorted(sorted(range(len(cands)), key=score)[:MAX_LIGHTS])
+    return [cands[i] for i in keep]

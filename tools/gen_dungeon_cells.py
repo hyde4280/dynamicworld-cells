@@ -25,7 +25,7 @@ import random
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from atlas_common import REGIONS_HALF, make_atlas_dungeon  # noqa: E402
+from atlas_common import REGIONS_HALF, make_atlas_dungeon, prop  # noqa: E402
 from gen_basic_cells import Cave, _rect_subtract, _n, dark_mine  # noqa: E402
 from gen_variation_cells import rock_complement, collider_rects  # noqa: E402
 
@@ -77,8 +77,8 @@ class Room(Cave):
     def light(self, x, y, z, intensity, flicker, rgb=WARM):
         self.lights.append((x, y, z, rgb[0], rgb[1], rgb[2], intensity, flicker))
 
-    def keylight(self):
-        x, y, z, r, g, b, inten, _ = self.lights[0]
+    def keylight(self, doors=()):
+        x, y, z, r, g, b, inten, _ = self.all_lights(doors)[0]
         return f"{_n(r)},{_n(g)},{_n(b)},{_n(inten)} ; {_n(x)},{_n(y)},{_n(z)}"
 
     def stones(self, pts, rmin=0.16, rmax=0.30, seed=7):
@@ -88,7 +88,7 @@ class Room(Cave):
                           squash=(1, 0.6, 1), jitter=0.3, rng=rng)
 
     def finish(self, name, ambient, doors):
-        m = self.manifest(name, ambient, self.keylight(), doors)
+        m = self.manifest(name, ambient, self.keylight(doors), doors)
         # extras go before the collider block so the header stays readable
         k = next((i for i, ln in enumerate(m) if ln.startswith("# collider:")), len(m))
         return m[:k] + self.extra + m[k:]
@@ -117,7 +117,10 @@ def cell016():
     b.box((0, 0.94, 4.0), (2.0, 0.08, 0.86), "wood")                 # altar top board
     b.cylinder((0, 1.08, 4.0), 0.14, 0.24, 0.2, 8, "wood", cap=False)  # bowl
     b.cylinder((0, 1.2, 4.0), 0.2, 0.0, 0.32, 6, "glow", cap=False)    # ember
-    c.light(0, 1.35, 3.9, 1.6, 0.5)
+    # the shrine fire: a torch-size cutout flame standing on the ember cone (base just
+    # under its tip at 1.36, so the cone does not hide it; the cone stays for loaders
+    # without props); its light stays where it was
+    c.props.append(prop("torch", 0, 1.3, 4.0, light=WARM + (1.6, 0.5), light_at=(0, 1.35, 3.9)))
     # gate frame in front of the alcove (posts clear of the alcove jambs)
     for s in (-1, 1):
         b.box((s * 1.25, 1.65, 3.3), (0.24, 3.3, 0.24), "wood", skip=("bottom",))
@@ -217,7 +220,9 @@ def cell018():
     b.cylinder((0, 0.48, 0), 0.26, 0.0, 0.8, 7, "glow", cap=False)
     b.cylinder((0.05, 0.36, -0.04), 0.34, 0.05, 0.5, 7, "glow", cap=False)
     c.colliders.append((0, 0.3, 0, 1.3, 0.6, 1.3))
-    c.light(0, 0.8, 0, 3.0, 0.6, rgb=(1.0, 0.62, 0.3))
+    # the campfire: the host's particle fire on the logs (the glow cones stay for
+    # loaders without props and for when the particle pool is full); light unchanged
+    c.props.append(prop("hearth", 0, 0.12, 0, light=(1.0, 0.62, 0.3, 3.0, 0.6), light_at=(0, 0.8, 0)))
     # log benches either side of the fire
     for s in (-1, 1):
         b.cylinder((s * 1.7, 0.22, 0), 0.22, 0.22, 1.7, 8, "wood", rot=(90, 0, 0))

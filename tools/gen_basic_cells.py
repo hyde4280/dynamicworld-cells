@@ -16,7 +16,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cellgen import CellBuilder, AtlasPainter, grid_regions
-from atlas_common import REGIONS_HALF
+from atlas_common import REGIONS_HALF, prop, prop_lines, derive_lights
 
 REGIONS = grid_regions(["rock", "floor", "path", "wood", "crystal", "glow"], 3, 2)
 CW = 1.5  # corridor half width
@@ -69,7 +69,8 @@ class Cave:
         self.b = CellBuilder(regions if regions is not None else REGIONS)
         self.colliders = []
         self._corridor_rects = []
-        self.lights = []    # (x, y, z, r, g, b, intensity, flicker)
+        self.lights = []    # explicit non-flame lights (x, y, z, r, g, b, intensity, flicker)
+        self.props = []     # '# prop:' entries (atlas_common.prop); flames bring their light
         self.tiling = None  # (region name, tile size m, (u0, v0, u1, v1))
         # dark-mine lighting (dynamicworld MULTI_CELL_SPEC section 2, 2026-11-16)
         self.baselight = None   # float: unlit base brightness
@@ -168,11 +169,18 @@ class Cave:
     def lantern(self, wx, wz, dx, dz):
         """Lantern hanging from a wooden arm protruding from the corridor
         wall. (wx, wz) is a point on the wall face; (dx, dz) is the axis
-        direction into the corridor. Also registers an analytic light
-        (Issue #23) at the glass. Every part stays at y >= 2.0 (above
+        direction into the corridor. Every part stays at y >= 2.0 (above
         head height), so no colliders are needed. Attachment parts are
         embedded slightly into the rock so no face is coplanar with the
-        wall (the Z-fighting rule)."""
+        wall (the Z-fighting rule).
+
+        Open cage (2026-11-21, Issue #52): four corner posts between the cap and
+        the bottom plate, with thin glow plates under the cap and on the bottom
+        plate instead of the old opaque glass box, so the host's cutout flame
+        ('# prop: lantern' at the flame base, the bottom plate's top) is seen
+        through the cage. Loaders without props see the cage and the two lit
+        plates. The light (Issue #23) is derived from the prop: base + 0.10 m
+        = the old glass centre (2.16)."""
         b = self.b
         gx, gz = wx + dx * 0.78, wz + dz * 0.78
         if dx != 0:
@@ -183,12 +191,18 @@ class Cave:
             b.box((wx, 2.62, wz + dz * 0.36), (0.12, 0.10, 0.84), "wood")
         b.box((gx, 2.44, gz), (0.035, 0.30, 0.035), "wood")              # rod
         b.box((gx, 2.30, gz), (0.20, 0.05, 0.20), "wood")                # cap
-        b.box((gx, 2.16, gz), (0.13, 0.17, 0.13), "glow")                # glass
+        b.box((gx, 2.265, gz), (0.13, 0.02, 0.13), "glow", skip=("top",))     # lit plate under the cap
+        b.box((gx, 2.05, gz), (0.13, 0.02, 0.13), "glow", skip=("bottom",))   # lit plate on the bottom
         for px in (-0.075, 0.075):
             for pz in (-0.075, 0.075):
                 b.box((gx + px, 2.16, gz + pz), (0.03, 0.24, 0.03), "wood")
         b.box((gx, 2.02, gz), (0.18, 0.04, 0.18), "wood")                # bottom
-        self.lights.append((gx, 2.16, gz, 1.0, 0.72, 0.42, 2.0, 0.35))
+        self.props.append(prop("lantern", gx, 2.06, gz, light=(1.0, 0.72, 0.42, 2.0, 0.35)))
+
+    def all_lights(self, doors=()):
+        """'# cell.lights' entries: derived from the flame props, then the explicit
+        lights (atlas_common.derive_lights)."""
+        return derive_lights(self.props, self.lights, doors)
 
     def manifest(self, name, ambient, keylight, doors):
         lines = [
@@ -198,9 +212,10 @@ class Cave:
             f"# cell.lightvolume: {ambient}",
             f"# cell.keylight: {keylight}",
         ]
-        if self.lights:
+        lights = self.all_lights(doors)
+        if lights:
             segs = []
-            for (x, y, z, r, g, bb, inten, fl) in self.lights:
+            for (x, y, z, r, g, bb, inten, fl) in lights:
                 segs.append(f"{_n(x)},{_n(y)},{_n(z)}, {_n(r)},{_n(g)},{_n(bb)},{_n(inten)},{_n(fl)}")
             lines.append("# cell.lights: " + " ; ".join(segs))
         if self.tiling is not None:
@@ -215,6 +230,7 @@ class Cave:
             lines.append("# cell.glow: " + ",".join(f"{v:.4f}".rstrip("0").rstrip(".") or "0" for v in self.glow[0])
                          + f", {_n(self.glow[1])}")
         lines += [f"# door: {d}" for d in doors]
+        lines += prop_lines(self.props)
         lines += [f"# collider: {c[0]},{c[1]},{c[2]}, {c[3]},{c[4]},{c[5]}"
                   for c in self.colliders]
         return lines

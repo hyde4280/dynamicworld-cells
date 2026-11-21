@@ -19,7 +19,8 @@ so the grain runs along every beam and the texel density is the same everywhere.
 Lighting lines written to the manifest (dynamicworld MULTI_CELL_SPEC section 2):
 `# cell.baselight:` (unlit base brightness), `# cell.fog:` (sight distance) and
 `# cell.glow:` (the lantern glass region stays lit), plus the `# cell.lights:` of the
-lanterns.
+lanterns. Each lantern is also a `# prop: lantern` (the host's cutout flame, ADR 0015)
+and its light is derived from that prop (atlas_common.derive_lights, Issue #52).
 """
 import math
 import os
@@ -28,7 +29,7 @@ import random
 from PIL import Image, ImageDraw, ImageFilter
 
 from cellgen import CellBuilder, AtlasPainter
-from atlas_common import rock_photo
+from atlas_common import rock_photo, prop, prop_lines, derive_lights
 from gen_variation_cells import collider_rects
 
 REGIONS = {
@@ -116,7 +117,8 @@ class Mine:
         self.seed = seed
         self.rng = random.Random(seed)
         self.colliders = []
-        self.lights = []
+        self.lights = []    # explicit non-flame lights (none in the mine cells)
+        self.props = []     # '# prop:' entries; flames bring their light
         self.extra = []
 
     # -- helpers --------------------------------------------------------
@@ -357,17 +359,29 @@ class Mine:
 
     def lantern(self, x, z, top=3.05, intensity=2.0, flicker=0.35):
         """Lantern on a chain; `top` is where the chain is fixed (cap underside or the
-        ceiling). The body hangs at 2.4..2.7 m, above head height."""
+        ceiling). The body hangs at 2.4..2.7 m, above head height.
+
+        Open cage (2026-11-21, Issue #52): four iron corner posts between the cap and
+        the bottom plate, thin glow plates under the cap and on the bottom plate, no
+        opaque glass box, so the host's cutout flame ('# prop: lantern', base on the
+        bottom glow plate at 2.46, 0.09 x 0.2 m) is seen through the cage. Loaders
+        without props see the cage with the two lit plates. The light is derived from
+        the prop: base + 0.10 m = 2.56, the old glass centre."""
         b = self.b
         self.beam((x, top + 0.02, z), (x, 2.72, z), 0.022, 0.022, region="iron", up=(1, 0, 0), ends=False)
         b.box((x, 2.70, z), (0.2, 0.035, 0.2), "iron")
         b.cylinder((x, 2.75, z), 0.1, 0.03, 0.07, 6, "iron", cap=False)
-        b.box((x, 2.56, z), (0.12, 0.25, 0.12), "glow")
+        b.box((x, 2.6725, z), (0.12, 0.02, 0.12), "glow", skip=("top",))     # lit plate under the cap
+        b.box((x, 2.445, z), (0.12, 0.02, 0.12), "glow", skip=("bottom",))   # lit plate on the bottom
         for px in (-0.07, 0.07):
             for pz in (-0.07, 0.07):
                 b.box((x + px, 2.56, z + pz), (0.022, 0.26, 0.022), "iron")
         b.box((x, 2.42, z), (0.17, 0.03, 0.17), "iron")
-        self.lights.append((x, 2.56, z, LANTERN_RGB[0], LANTERN_RGB[1], LANTERN_RGB[2], intensity, flicker))
+        self.props.append(prop("lantern", x, 2.46, z,
+                               light=LANTERN_RGB + (intensity, flicker)))
+
+    def all_lights(self, doors=()):
+        return derive_lights(self.props, self.lights, doors)
 
     def door(self, face):
         """Heavy timber frame around the 2 m x 3 m opening at a face centre, with the
@@ -482,8 +496,9 @@ class Mine:
 
     # -- output ---------------------------------------------------------
     def manifest(self, name, doors, base=0.12, fog=(3.0, 10.0)):
-        assert len(self.lights) <= 4, "the shader takes at most 4 lights"
-        lx, ly, lz = self.lights[0][:3]
+        lights = self.all_lights(doors)
+        assert len(lights) <= 4, "the shader takes at most 4 lights"
+        lx, ly, lz = lights[0][:3]
         lines = [
             f"# cell.name: {name}",
             "# cell.version: 0",
@@ -494,12 +509,13 @@ class Mine:
             f"# cell.fog: {_n(fog[0])}, {_n(fog[1])}",
             "# cell.lights: " + " ; ".join(
                 f"{_n(x)},{_n(y)},{_n(z)}, {_n(r)},{_n(g)},{_n(bb)},{_n(i)},{_n(f)}"
-                for (x, y, z, r, g, bb, i, f) in self.lights),
+                for (x, y, z, r, g, bb, i, f) in lights),
             "# cell.tiling: rock, 2, 0,0,0.5,1",
             "# cell.glow: " + ",".join(_n(v) for v in REGIONS["glow"]) + ", 1.3",
             f"# cell.tris: {len(self.b.faces)}",
         ]
         lines += [f"# door: {d}" for d in doors]
+        lines += prop_lines(self.props)
         lines += self.extra
         lines += ["# collider: " + ",".join(_n(v) for v in c[:3]) + ", " + ",".join(_n(v) for v in c[3:6])
                   + ("" if len(c) < 9 else ", " + ",".join(_n(v) for v in c[6:9]))

@@ -11,9 +11,21 @@ Node attributes after the rotation are a proposal (DUNGEON_DESIGN.md section 4.1
     spawn=<kind>:<count>   enemies at the cell's `# spawn:` points (may repeat)
     clear=<flag>           <flag> is raised when the node's enemies are defeated
 
+Each cell's `# prop:` lines (dynamicworld PROTOTYPE_SPEC section 2.1, Issue #52) are
+checked like the loader parses them: known kind (torch / lantern / candle / hearth),
+numeric position inside the cell box (x, z -5..5, y 0..cell.pitch.y, default 6),
+optional numeric rotY, attributes tint=#rrggbb, scale 0.1..4, tilt -90..90,
+flag / lit integers 0..2047 (len / sound are accepted, uv is reserved), at most 16
+lines. Warnings: more than 8 cutout flames (the slot places 8), more than 2 hearths
+in one cell (the particle pool is 4 on PC / 2 on Quest for the whole stage), and a
+flame whose centre (base + 0.17 torch / 0.10 lantern / 0.05 candle / 0.6 hearth, x scale)
+has no `# cell.lights` entry within 0.5 m ('flame without light'; flames with
+flag= / lit= get no light by the generator rule, atlas_common.derive_lights).
+
 Usage: check_def.py defs/mine01.txt [--map]      (exit status 1 on errors)
 """
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -25,6 +37,104 @@ MODES = ("fixed", "generated")
 MULTI = ("solo", "party", "phase")
 NODE_ATTRS = ("switch", "spawn", "clear")
 EDGE_OPTS = ("key", "gate", "open")
+# '# prop:' (the loader's CellLoader.ParsePropLine; the generators' atlas_common.PROP_KINDS)
+PROP_FAMILY = {"torch": "cutout", "lantern": "cutout", "candle": "cutout", "hearth": "particle"}
+# flame centre above the base at scale 1 (= atlas_common.PROP_KINDS light height)
+PROP_CENTRE = {"torch": 0.17, "lantern": 0.10, "candle": 0.05, "hearth": 0.6}
+MAX_PROPS, MAX_CUTOUT, MAX_HEARTH, FLAME_LIGHT_DIST = 16, 8, 2, 0.5
+HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def _num(v):
+    try:
+        f = float(v)
+    except ValueError:
+        return None
+    return f if f == f and abs(f) != float("inf") else None
+
+
+def check_props(cell, info, pitch):
+    """Errors / warnings / notes for the '# prop:' lines of one cell."""
+    errs, warns, notes = [], [], []
+    if len(info["props"]) > MAX_PROPS:
+        errs.append(f"{cell}: {len(info['props'])} '# prop:' lines > {MAX_PROPS} (the loader ignores the rest)")
+    kinds = []
+    for ln, body in info["props"]:
+        t = [x.strip() for x in body.split(",")]
+        tag = f"{cell} line {ln}: prop"
+        if len(t) < 4:
+            errs.append(f"{tag}: malformed (needs <kind>, x,y,z): {body.strip()}")
+            continue
+        kind = t[0].lower()
+        if kind not in PROP_FAMILY:
+            errs.append(f"{tag}: unknown kind '{t[0]}' (the loader ignores it)")
+            continue
+        pos = [_num(v) for v in t[1:4]]
+        if None in pos:
+            errs.append(f"{tag}: position is not numeric: {body.strip()}")
+            continue
+        x, y, z = pos
+        if not (-5 <= x <= 5 and -5 <= z <= 5 and 0 <= y <= pitch):
+            errs.append(f"{tag}: {kind} at ({x:g},{y:g},{z:g}) is outside the cell box "
+                        f"(x,z -5..5, y 0..{pitch:g})")
+            continue
+        attrs = {}
+        for i, tok in enumerate(t[4:], 4):
+            if not tok:
+                continue
+            if "=" not in tok:
+                if i != 4 or _num(tok) is None:
+                    errs.append(f"{tag}: malformed field '{tok}' (rotY is the 5th field, then key=value)")
+                continue
+            k, _, v = (a.strip() for a in tok.partition("="))
+            k = k.lower()
+            if k in attrs:
+                warns.append(f"{tag}: attribute '{k}' given twice (the last one wins)")
+            attrs[k] = v
+            if k == "tint":
+                if not HEX.match(v):
+                    errs.append(f"{tag}: tint '{v}' is not #rrggbb")
+            elif k == "scale":
+                f = _num(v)
+                if f is None or not 0.1 <= f <= 4:
+                    errs.append(f"{tag}: scale '{v}' is outside 0.1..4")
+            elif k == "tilt":
+                f = _num(v)
+                if f is None or not -90 <= f <= 90:
+                    errs.append(f"{tag}: tilt '{v}' is outside -90..90")
+                elif PROP_FAMILY[kind] != "particle":
+                    notes.append(f"{tag}: tilt has no effect on the cutout kind {kind}")
+            elif k in ("flag", "lit"):
+                if not v.isdigit() or int(v) > MAX_KEY:
+                    errs.append(f"{tag}: {k} must be a flag 0..{MAX_KEY}: '{v}'")
+            elif k == "len":
+                if _num(v) is None:
+                    errs.append(f"{tag}: len '{v}' is not a number")
+            elif k == "sound":
+                pass
+            elif k == "uv":
+                warns.append(f"{tag}: uv= is reserved (syntax not decided), the loader ignores it")
+            else:
+                warns.append(f"{tag}: unknown attribute '{k}' (the loader ignores it)")
+        kinds.append(kind)
+        if "flag" in attrs or "lit" in attrs:
+            continue      # no light by the generator rule
+        sc = _num(attrs.get("scale", "1")) or 1.0
+        cy = y + PROP_CENTRE[kind] * sc      # measured from the flame centre, not the base
+        near = min((((x - a) ** 2 + (cy - b) ** 2 + (z - c) ** 2) ** 0.5 for a, b, c in info["lights"]),
+                   default=None)
+        if near is None or near > FLAME_LIGHT_DIST:
+            warns.append(f"{tag}: flame without light: {kind} at ({x:g},{y:g},{z:g}) has no "
+                         f"'# cell.lights' entry within {FLAME_LIGHT_DIST} m"
+                         + ("" if near is None else f" (nearest {near:.2f} m)"))
+    cut = sum(PROP_FAMILY[k] == "cutout" for k in kinds)
+    hearth = kinds.count("hearth")
+    if cut > MAX_CUTOUT:
+        warns.append(f"{cell}: {cut} cutout flames > {MAX_CUTOUT} per slot (the rest are not placed)")
+    if hearth > MAX_HEARTH:
+        warns.append(f"{cell}: {hearth} hearths in one cell > {MAX_HEARTH} (particle pool: PC 4 / Quest 2 "
+                     "for the whole stage, nearest first)")
+    return errs, warns, notes, kinds
 
 
 def cell_manifest(cell):
@@ -32,12 +142,10 @@ def cell_manifest(cell):
     path = os.path.join(CELLS, cell + ".obj")
     if not os.path.exists(path):
         return None
-    info = {"doors": {}, "switch": 0, "spawn": 0, "save": False}
-    for line in open(path, encoding="utf-8"):
+    info = {"doors": {}, "switch": 0, "spawn": 0, "save": False, "props": [], "lights": []}
+    for ln, line in enumerate(open(path, encoding="utf-8"), 1):
         if not line.startswith("#"):
-            if line.startswith("v "):
-                break
-            continue
+            continue      # the loader reads '#' lines anywhere in the file
         if line.startswith("# door:"):
             p = [x.strip() for x in line.split(":", 1)[1].split(",")]
             info["doors"][p[0]] = p[1].lower() if len(p) > 1 else ("hatch" if p[0] in "UD" else "")
@@ -47,6 +155,13 @@ def cell_manifest(cell):
             info["spawn"] += 1
         elif line.startswith("# cell.save:"):
             info["save"] = line.split(":", 1)[1].strip().startswith("1")
+        elif line.startswith("# prop:"):
+            info["props"].append((ln, line.split(":", 1)[1]))
+        elif line.startswith("# cell.lights:"):
+            for seg in line.split(":", 1)[1].split(";"):
+                v = [_num(a) for a in seg.split(",")[:3]]
+                if len(v) == 3 and None not in v:
+                    info["lights"].append(tuple(v))
     return info
 
 
@@ -150,6 +265,26 @@ def check(path, show_map=False):
             errs.append(f"line {n['ln']}: {nid}: {want} enemies > {m['spawn']} '# spawn:' points in {n['cell']}")
         if n["attrs"]["clear"] and not want:
             errs.append(f"line {n['ln']}: {nid}: clear= without spawn=")
+
+    # ---- cell props
+    pitch = _num(str(head.get("param", {}).get("cell.pitch.y", 6))) or 6.0
+    prop_cells = {}
+    for cell, m in cells.items():
+        if m is None:
+            continue
+        e, w, nt, kinds = check_props(cell, m, pitch)
+        errs += e
+        warns += w
+        notes += nt
+        if kinds:
+            prop_cells[cell] = kinds
+    if prop_cells:
+        hearths = sum(k.count("hearth") for k in prop_cells.values())
+        notes.append(f"props: {sum(len(k) for k in prop_cells.values())} in {len(prop_cells)} cells ("
+                     + ", ".join(f"{c} " + "+".join(f"{k.count(n)} {n}" for n in sorted(set(k)))
+                                 for c, k in sorted(prop_cells.items()))
+                     + f"); hearth cells {sum(1 for k in prop_cells.values() if 'hearth' in k)}, "
+                     f"hearths {hearths} (pool PC 4 / Quest 2 for the stage, nearest first)")
 
     # ---- edges
     used = {}        # (node, local face) -> edge line

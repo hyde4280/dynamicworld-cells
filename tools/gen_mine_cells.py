@@ -169,4 +169,4 @@ if __name__ == "__main__":
         tris = m.b.write_obj(os.path.join(out, f"cell{num:03d}.obj"), manifest,
                              f"# CELL{num} mine tunnel (minekit) - see MULTI_CELL_SPEC.md (dynamicworld)")
         make_atlas(os.path.join(out, f"cell{num:03d}.png"), seed=600 + num)
-        print(f"cell{num:03d}: tris={tris} colliders={len(m.colliders)} lights={len(m.lights)}")
+        print(f"cell{num:03d}: tris={tris} colliders={len(m.colliders)} lights={len(m.all_lights())} props={len(m.props)}")

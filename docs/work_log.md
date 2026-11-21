@@ -229,3 +229,15 @@ ClientSim で defs/mine01.txt を通して歩いた結果、データ側の不�
 - 検査: check_cell は 006〜011・014〜019 すべて OK、check_overlap は 0.00 m^2、check_def.py defs/mine01.txt は OK、check_pair_overlap.py defs/mine01.txt --all の残りは cell010↔011 の側面 6.27 m^2（公開済みの階段セルの既知分）のみ。
 - 未確認: Unity での見た目（隙間が消えたか・床の質感・階段セルの明るさとランタン位置が壁や階段の中に入っていないか。ライトは解析的なので入っていても描画は壊れないが明るさは偏る）。
 - 2026-11-16 テクスチャ追加修正: cell010/011 のアトラス（旧 blobs の迷彩状の岩・色斑の床）を `tools/repaint_stair_atlas.py`（冪等）で描き直した。3x2 グリッド配置（OBJ の UV は無変更）のまま rock=CC0 岩写真、floor/path=暗い石・踏み固めた土（`atlas_common.paint_calm_floor_path`、輝度のみのノイズ）に置換、wood/crystal/glow は据え置き。cell015 は `gen_variation_cells.py` が `make_atlas_dungeon` を使うようにして床の紙吹雪を解消（OBJ は不変）。cell010/015 の .png.b64 も更新。check_cell 010/011/015 OK、check_def mine01 OK。未確認: Unity での実際の見た目。
+
+## 2026-11-21 生成ツールが `# prop:` を出し、灯を炎から導く（本体 Issue #52、ブランチ `feat/cell-props`）
+
+本体の CellLoader が `# prop:`（ADR 0015、本体 Issue #25）を読むようになったので、mine01 のランタン・祠の火・焚き火を炎の宣言にした。公開（main への push）はユーザーの確認待ち。
+
+- 共通部品 `tools/atlas_common.py`: `PROP_KINDS`、`prop()`・`prop_line(s)()`・`flame_light()`・`derive_lights()`。灯の規則（炎 1 つに点光源 1 つ、根元 + kind の高さか指定位置、`flag=`/`lit=` 付きは灯なし、炎以外の灯は後ろ、4 灯を超えたら中心と横扉の中心に近い 4 つ）は同ファイルの冒頭と README に書いた。
+- ランタン: 不透明のガラスの箱をやめ、四隅の柱＋笠の下と底の glow の薄板（各 10 tris）の籠にした（1 基 +8 tris）。`minekit.Mine.lantern`（吊り、炎の根元 2.46 m）と `gen_basic_cells.Cave.lantern`（壁の腕、2.06 m）。灯は根元 + 0.10 m で、従来のガラスの中心（2.56 / 2.16）と同じ。
+- cell016 祠: ember の円錐の先に `torch`（根元 1.3 m。円錐の中に置くと隠れた）、灯は従来の (0,1.35,3.9)。cell018 焚き火: `hearth`（根元 0.12 m）、灯は従来の (0,0.8,0)。glow の円錐はどちらも残した（古いローダーと、パーティクルの枠が埋まった時のため）。cell019 の朝の間は炎が無いので prop なし（台座の鉢は火の無い鉢のまま）。cell010・011 はランタンの模型が無いので対象外。
+- 結果: 炎 32（lantern 30・torch 1・hearth 1）を 11 セルに。`# cell.lights` と `# cell.keylight` の値はすべて従来どおり。tris: 006 3,360 / 007 2,678 / 008 2,708 / 009 2,348 / 012 904 / 013 762 / 014 3,358 / 015 1,678 / 016 928 / 017 1,354 / 018 1,354。PNG は再生成せず従来のまま（Pillow の版の違いで画素が変わるため。ランタンは既存の glow 領域を使う）。012・013・016〜018 は再生成で `cellgen.sphere` の極の蓋の修正（面の並びのみ）も入った。019 は prop が無く、再生成すると蓋の修正だけになるので触っていない。cell015 のコライダー 1 行は浮動小数の末尾の桁だけ変わった。
+- `tools/check_def.py`: `# prop:` の検査（kind・数・箱・rotY・属性の範囲・16 行がエラー、切り抜き 8 超・1 セルの hearth 2 超・炎の中心から 0.5 m 以内に灯が無いが警告）。ファイル全体の `#` 行を読む（ローダーと同じ）。壊したセルで各エラー・警告が出ることを確認した。
+- 検査: check_def mine01 / stagetest OK（警告 0）、check_pair_overlap mine01 `--all` は変更前と同一（残りは cell010↔011 の 6.27 m²）、check_cell・check_overlap も変更前と同じ。
+- Unity（本体 StageWorld、ClientSim）: 本物の生成テキストを構築済みのスロットへ流して確認。吊り・壁のランタンとも籠の中に炎が見え、祠の火・焚き火も出た。詳細は本体の work_log。
