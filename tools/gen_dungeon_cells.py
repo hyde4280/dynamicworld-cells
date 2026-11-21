@@ -117,7 +117,9 @@ def cell016():
     b.box((0, 0.94, 4.0), (2.0, 0.08, 0.86), "wood")                 # altar top board
     b.cylinder((0, 1.08, 4.0), 0.14, 0.24, 0.2, 8, "wood", cap=False)  # bowl
     b.cylinder((0, 1.2, 4.0), 0.2, 0.0, 0.32, 6, "glow", cap=False)    # ember
-    c.light(0, 1.35, 3.9, 1.6, 0.5)
+    # the ember bowl's flame is a prop (kind torch: a brazier flame); its light
+    # keeps the hand-tuned spot just toward the room from the bowl
+    c.flame("torch", (0, 1.36, 4.0), (0, 1.35, 3.9), WARM, 1.6, 0.5)
     # gate frame in front of the alcove (posts clear of the alcove jambs)
     for s in (-1, 1):
         b.box((s * 1.25, 1.65, 3.3), (0.24, 3.3, 0.24), "wood", skip=("bottom",))
@@ -217,7 +219,9 @@ def cell018():
     b.cylinder((0, 0.48, 0), 0.26, 0.0, 0.8, 7, "glow", cap=False)
     b.cylinder((0.05, 0.36, -0.04), 0.34, 0.05, 0.5, 7, "glow", cap=False)
     c.colliders.append((0, 0.3, 0, 1.3, 0.6, 1.3))
-    c.light(0, 0.8, 0, 3.0, 0.6, rgb=(1.0, 0.62, 0.3))
+    # the campfire's flame is a particle prop (kind hearth); the glow cones in
+    # the mesh stay as the ember bed under it
+    c.flame("hearth", (0, 0.05, 0), (0, 0.8, 0), (1.0, 0.62, 0.3), 3.0, 0.6)
     # log benches either side of the fire
     for s in (-1, 1):
         b.cylinder((s * 1.7, 0.22, 0), 0.22, 0.22, 1.7, 8, "wood", rot=(90, 0, 0))

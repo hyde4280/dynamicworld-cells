@@ -70,6 +70,7 @@ class Cave:
         self.colliders = []
         self._corridor_rects = []
         self.lights = []    # (x, y, z, r, g, b, intensity, flicker)
+        self.flames = []    # (kind, x, y, z): '# prop:' at the flame's base
         self.tiling = None  # (region name, tile size m, (u0, v0, u1, v1))
         # dark-mine lighting (dynamicworld MULTI_CELL_SPEC section 2, 2026-11-16)
         self.baselight = None   # float: unlit base brightness
@@ -165,11 +166,20 @@ class Cave:
     def floor_slab(self):
         self.b.box((0, -0.05, 0), (10, 0.1, 10), "floor", skip=("bottom",))
 
+    def flame(self, kind, base, light, rgb, intensity, flicker):
+        """Register a flame: a `# prop:` at the flame's base (the host pool draws
+        the flame, ADR 0015), plus the analytic light derived from it (the
+        cells-side rule: a flame is a point light at the fixture's glow centre)."""
+        self.flames.append((kind, base[0], base[1], base[2]))
+        self.lights.append((light[0], light[1], light[2], rgb[0], rgb[1], rgb[2], intensity, flicker))
+
     def lantern(self, wx, wz, dx, dz):
         """Lantern hanging from a wooden arm protruding from the corridor
         wall. (wx, wz) is a point on the wall face; (dx, dz) is the axis
-        direction into the corridor. Also registers an analytic light
-        (Issue #23) at the glass. Every part stays at y >= 2.0 (above
+        direction into the corridor. The cage is open (posts, cap, bottom)
+        so the prop flame shows through; with an old loader the empty cage
+        is what shows. Also registers the flame's analytic light
+        (Issue #23) at the glass centre. Every part stays at y >= 2.0 (above
         head height), so no colliders are needed. Attachment parts are
         embedded slightly into the rock so no face is coplanar with the
         wall (the Z-fighting rule)."""
@@ -183,12 +193,11 @@ class Cave:
             b.box((wx, 2.62, wz + dz * 0.36), (0.12, 0.10, 0.84), "wood")
         b.box((gx, 2.44, gz), (0.035, 0.30, 0.035), "wood")              # rod
         b.box((gx, 2.30, gz), (0.20, 0.05, 0.20), "wood")                # cap
-        b.box((gx, 2.16, gz), (0.13, 0.17, 0.13), "glow")                # glass
         for px in (-0.075, 0.075):
             for pz in (-0.075, 0.075):
                 b.box((gx + px, 2.16, gz + pz), (0.03, 0.24, 0.03), "wood")
         b.box((gx, 2.02, gz), (0.18, 0.04, 0.18), "wood")                # bottom
-        self.lights.append((gx, 2.16, gz, 1.0, 0.72, 0.42, 2.0, 0.35))
+        self.flame("lantern", (gx, 2.04, gz), (gx, 2.16, gz), (1.0, 0.72, 0.42), 2.0, 0.35)
 
     def manifest(self, name, ambient, keylight, doors):
         lines = [
@@ -198,11 +207,14 @@ class Cave:
             f"# cell.lightvolume: {ambient}",
             f"# cell.keylight: {keylight}",
         ]
+        assert len(self.lights) <= 4, "the shader takes at most 4 lights"
         if self.lights:
             segs = []
             for (x, y, z, r, g, bb, inten, fl) in self.lights:
                 segs.append(f"{_n(x)},{_n(y)},{_n(z)}, {_n(r)},{_n(g)},{_n(bb)},{_n(inten)},{_n(fl)}")
             lines.append("# cell.lights: " + " ; ".join(segs))
+        for (k, x, y, z) in self.flames:
+            lines.append(f"# prop: {k}, {_n(x)},{_n(y)},{_n(z)}")
         if self.tiling is not None:
             tname, tsize, (u0, v0, u1, v1) = self.tiling
             lines.append(f"# cell.tiling: {tname}, {_n(tsize)}, {_n(u0)},{_n(v0)},{_n(u1)},{_n(v1)}")

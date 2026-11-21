@@ -117,6 +117,7 @@ class Mine:
         self.rng = random.Random(seed)
         self.colliders = []
         self.lights = []
+        self.flames = []    # (kind, x, y, z): '# prop:' at the flame's base
         self.extra = []
 
     # -- helpers --------------------------------------------------------
@@ -355,19 +356,27 @@ class Mine:
                 self.beam((x0, y, z0), (x1, y + r.uniform(-0.015, 0.015), z1), w, 0.04, region="board")
             a += w + r.uniform(0.04, 0.12)
 
+    def flame(self, kind, base, light, rgb, intensity, flicker):
+        """Register a flame: a `# prop:` at the flame's base (the host pool draws
+        the flame, ADR 0015), plus the analytic light derived from it (the
+        cells-side rule: a flame is a point light at the fixture's glow centre)."""
+        self.flames.append((kind, base[0], base[1], base[2]))
+        self.lights.append((light[0], light[1], light[2], rgb[0], rgb[1], rgb[2], intensity, flicker))
+
     def lantern(self, x, z, top=3.05, intensity=2.0, flicker=0.35):
         """Lantern on a chain; `top` is where the chain is fixed (cap underside or the
-        ceiling). The body hangs at 2.4..2.7 m, above head height."""
+        ceiling). The body hangs at 2.4..2.7 m, above head height. The cage is
+        open (posts, cap, base plate) so the prop flame shows through; with an
+        old loader the empty cage is what shows."""
         b = self.b
         self.beam((x, top + 0.02, z), (x, 2.72, z), 0.022, 0.022, region="iron", up=(1, 0, 0), ends=False)
         b.box((x, 2.70, z), (0.2, 0.035, 0.2), "iron")
         b.cylinder((x, 2.75, z), 0.1, 0.03, 0.07, 6, "iron", cap=False)
-        b.box((x, 2.56, z), (0.12, 0.25, 0.12), "glow")
         for px in (-0.07, 0.07):
             for pz in (-0.07, 0.07):
                 b.box((x + px, 2.56, z + pz), (0.022, 0.26, 0.022), "iron")
         b.box((x, 2.42, z), (0.17, 0.03, 0.17), "iron")
-        self.lights.append((x, 2.56, z, LANTERN_RGB[0], LANTERN_RGB[1], LANTERN_RGB[2], intensity, flicker))
+        self.flame("lantern", (x, 2.435, z), (x, 2.56, z), LANTERN_RGB, intensity, flicker)
 
     def door(self, face):
         """Heavy timber frame around the 2 m x 3 m opening at a face centre, with the
@@ -484,6 +493,7 @@ class Mine:
     def manifest(self, name, doors, base=0.12, fog=(3.0, 10.0)):
         assert len(self.lights) <= 4, "the shader takes at most 4 lights"
         lx, ly, lz = self.lights[0][:3]
+        props = [f"# prop: {k}, {_n(x)},{_n(y)},{_n(z)}" for (k, x, y, z) in self.flames]
         lines = [
             f"# cell.name: {name}",
             "# cell.version: 0",
@@ -495,6 +505,7 @@ class Mine:
             "# cell.lights: " + " ; ".join(
                 f"{_n(x)},{_n(y)},{_n(z)}, {_n(r)},{_n(g)},{_n(bb)},{_n(i)},{_n(f)}"
                 for (x, y, z, r, g, bb, i, f) in self.lights),
+            *props,
             "# cell.tiling: rock, 2, 0,0,0.5,1",
             "# cell.glow: " + ",".join(_n(v) for v in REGIONS["glow"]) + ", 1.3",
             f"# cell.tris: {len(self.b.faces)}",

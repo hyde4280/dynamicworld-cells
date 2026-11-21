@@ -229,3 +229,16 @@ ClientSim で defs/mine01.txt を通して歩いた結果、データ側の不�
 - 検査: check_cell は 006〜011・014〜019 すべて OK、check_overlap は 0.00 m^2、check_def.py defs/mine01.txt は OK、check_pair_overlap.py defs/mine01.txt --all の残りは cell010↔011 の側面 6.27 m^2（公開済みの階段セルの既知分）のみ。
 - 未確認: Unity での見た目（隙間が消えたか・床の質感・階段セルの明るさとランタン位置が壁や階段の中に入っていないか。ライトは解析的なので入っていても描画は壊れないが明るさは偏る）。
 - 2026-11-16 テクスチャ追加修正: cell010/011 のアトラス（旧 blobs の迷彩状の岩・色斑の床）を `tools/repaint_stair_atlas.py`（冪等）で描き直した。3x2 グリッド配置（OBJ の UV は無変更）のまま rock=CC0 岩写真、floor/path=暗い石・踏み固めた土（`atlas_common.paint_calm_floor_path`、輝度のみのノイズ）に置換、wood/crystal/glow は据え置き。cell015 は `gen_variation_cells.py` が `make_atlas_dungeon` を使うようにして床の紙吹雪を解消（OBJ は不変）。cell010/015 の .png.b64 も更新。check_cell 010/011/015 OK、check_def mine01 OK。未確認: Unity での実際の見た目。
+
+## 2026-11-21 セルの prop 化（`# prop:` の生成対応、ランタンの開いた籠、check_def の prop 検証）— ブランチ feat/cell-props（未公開）
+
+dynamicworld Issue #52。ローダー側（#25、PropPool）の実装に合わせて、生成ツールから `# prop:` を出すようにした。**この変更はブランチ上のみで、main へはまだ push していない（公開判断は別途）。**
+
+- 生成: `Mine.flame()`（minekit）と `Cave.flame()`（gen_basic_cells）を新設し、炎の登録が `# prop:`（炎の根元の位置）と、そこから導く `# cell.lights`（炎＝点光源、位置は fixture の光る中心。従来の灯の値・位置は不変）を両方出す。吊りランタン・壁ランタンは flame 経由に移行。cell016 の祠の残り火は `torch`、cell018 の焚き火は `hearth` として登録。
+- ランタンの直し: minekit の吊りランタンと Cave の壁ランタンから、不透明なガラスの箱を取り除いた（柱・屋根（笠）・台の開いた籠）。1 個あたり −12 tris。古いローダーでは空の籠だけが見える。
+- 対象セル（11 件、prop 計 32 件 = lantern 30・torch 1・hearth 1）: 006〜009・014、012・013・015・016・017・018。cell019 は炎の fixture が無い（光の筋は炎ではない）ので対象外。cell010/011 は光源だけで模型が無く生成スクリプトも無いため、prop を付けると炎だけが浮くので対象外（フォローアップ）。
+- PNG は再生成していない（こちらの環境ではアトラスのピクセルが live と一致しないため。OBJ の UV 配置は不変で、live の PNG とそのまま組み合う）。
+- 検証ツール: check_def.py が `# prop:` を検証するようにした（種類・数値の範囲・セルの箱の内側・16 行までがエラー、近くに灯が無い炎と hearth 3 個以上が警告、未知の属性は警告）。mine01 / stagetest は従来どおり OK で prop の警告もゼロ。変異テスト（未知の kind・箱の外・17 行・tint / scale / flag の不正ほか）でエラー・警告が出ることを確認。
+- 検査: check_cell は 11 セルすべて OK。check_overlap は live と完全一致（012/013 の既存分のみ、増減なし）。`# cell.lights` の値と位置は全セルで live と同一。
+- 古いローダー互換: prop 追加前の CellLoader.cs（1,291 行）で確認。`#` で始まる行は ParseManifestLine の StartsWith 連鎖に渡され、`# prop:` はどれにも一致せず読み飛ばされる（例外・エラーなし）。炎が出ないだけで壊れない。
+- 未確認: ClientSim で本物の生成セルを構築済みスロットへ流した時の炎の表示（2 セル以上、ランタンの前後画像）と例外 0 件 — ローカル側で実施。cell018 の焚き火の glow コーン（メッシュ）と hearth のパーティクルが重なって見えないかも、そこで判断する。

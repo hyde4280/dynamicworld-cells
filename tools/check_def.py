@@ -28,11 +28,12 @@ EDGE_OPTS = ("key", "gate", "open")
 
 
 def cell_manifest(cell):
-    """doors {face: kind}, counts of switch / spawn lines, save flag; None if missing."""
+    """doors {face: kind}, counts of switch / spawn lines, save flag, the raw
+    '# prop:' field lists and the '# cell.lights:' positions; None if missing."""
     path = os.path.join(CELLS, cell + ".obj")
     if not os.path.exists(path):
         return None
-    info = {"doors": {}, "switch": 0, "spawn": 0, "save": False}
+    info = {"doors": {}, "switch": 0, "spawn": 0, "save": False, "props": [], "lights": []}
     for line in open(path, encoding="utf-8"):
         if not line.startswith("#"):
             if line.startswith("v "):
@@ -47,6 +48,16 @@ def cell_manifest(cell):
             info["spawn"] += 1
         elif line.startswith("# cell.save:"):
             info["save"] = line.split(":", 1)[1].strip().startswith("1")
+        elif line.startswith("# prop:"):
+            info["props"].append([x.strip() for x in line.split(":", 1)[1].split(",")])
+        elif line.startswith("# cell.lights:"):
+            for seg in line.split(":", 1)[1].split(";"):
+                p = [x.strip() for x in seg.split(",")]
+                if len(p) >= 3:
+                    try:
+                        info["lights"].append((float(p[0]), float(p[1]), float(p[2])))
+                    except ValueError:
+                        pass
     return info
 
 
@@ -284,6 +295,80 @@ def check(path, show_map=False):
             notes.append("flags raised but not used as a key: " + ", ".join(str(f) for f in unused))
         saves = [n for n in order if cells.get(nodes[n]["cell"]) and cells[nodes[n]["cell"]]["save"]]
         notes.append("save points: " + (", ".join(saves) if saves else "none"))
+
+    # ---- cell props ('# prop:' lines; ADR 0015, Issue #52). Mirrors the loader's
+    # rules (CellLoader.ParsePropLine): the loader ignores bad lines with a log,
+    # so the data side reports them as errors instead of letting them vanish.
+    PROP_KINDS = ("torch", "lantern", "candle", "hearth")
+    PROP_KEYS = ("tint", "scale", "tilt", "flag", "lit", "len", "sound", "uv")
+    for cname in sorted(cells):
+        m = cells[cname]
+        if m is None:
+            continue
+        props = m["props"]
+        if len(props) > 16:
+            errs.append(f"{cname}: {len(props)} '# prop:' lines > loader limit 16")
+        hearths = 0
+        for fields in props:
+            where = f"{cname}: '# prop: {', '.join(fields)}'"
+            if len(fields) < 4:
+                errs.append(f"{where}: needs at least kind, x,y,z")
+                continue
+            kind = fields[0].lower()
+            if kind not in PROP_KINDS:
+                errs.append(f"{where}: unknown kind '{fields[0]}' (loader kinds: {', '.join(PROP_KINDS)})")
+                continue
+            if kind == "hearth":
+                hearths += 1
+            try:
+                x, y, z = float(fields[1]), float(fields[2]), float(fields[3])
+            except ValueError:
+                errs.append(f"{where}: position is not numeric")
+                continue
+            if not (-5.0 <= x <= 5.0 and -5.0 <= z <= 5.0 and 0.0 <= y <= 10.0):
+                errs.append(f"{where}: position ({fields[1]},{fields[2]},{fields[3]}) is outside the cell box (x,z -5..5, y 0..10)")
+            for i, tok in enumerate(fields[4:], start=4):
+                if "=" not in tok:
+                    if i == 4:
+                        try:
+                            float(tok)
+                        except ValueError:
+                            errs.append(f"{where}: field '{tok}' is neither rotY nor key=value")
+                    else:
+                        errs.append(f"{where}: field '{tok}' is not key=value")
+                    continue
+                key, _, val = tok.partition("=")
+                key, val = key.strip().lower(), val.strip()
+                if key not in PROP_KEYS:
+                    warns.append(f"{where}: unknown attribute '{key}' (the loader ignores it)")
+                elif key == "tint":
+                    h = val[1:] if val.startswith("#") else val
+                    if len(h) != 6 or any(c not in "0123456789abcdefABCDEF" for c in h):
+                        errs.append(f"{where}: tint '{val}' is not #rrggbb")
+                elif key in ("scale", "tilt", "len"):
+                    try:
+                        v = float(val)
+                    except ValueError:
+                        errs.append(f"{where}: {key} '{val}' is not a number")
+                        continue
+                    if key == "scale" and not (0.1 <= v <= 4.0):
+                        errs.append(f"{where}: scale {val} outside 0.1..4 (the loader clamps it)")
+                    if key == "tilt" and not (-90.0 <= v <= 90.0):
+                        errs.append(f"{where}: tilt {val} outside -90..90 (the loader clamps it)")
+                elif key in ("flag", "lit"):
+                    try:
+                        v = int(val)
+                    except ValueError:
+                        errs.append(f"{where}: {key} '{val}' is not an integer")
+                        continue
+                    if not (0 <= v <= 2047):
+                        errs.append(f"{where}: {key} {val} outside 0..2047")
+            # a flame with no light near it would not light its surroundings
+            if not any((x - lx) ** 2 + (y - ly) ** 2 + (z - lz) ** 2 <= 1.5 ** 2
+                       for (lx, ly, lz) in m["lights"]):
+                warns.append(f"{where}: no '# cell.lights' point within 1.5 m of this flame")
+        if hearths > 2:
+            warns.append(f"{cname}: {hearths} hearth props in one cell (particle budget: at most 2 recommended)")
 
     name = os.path.basename(path)
     print(f"{name}: world={head.get('world.name')} rev={head.get('world.rev')} "
