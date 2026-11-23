@@ -148,12 +148,22 @@ class CellBuilder:
         for j in range(seg_v + 1):
             phi = math.pi * j / seg_v  # 0 top .. pi bottom
             row = []
+            row_first_r = None
             for i in range(seg_u + 1):
                 theta = 2 * math.pi * i / seg_u
                 d = (math.sin(phi) * math.sin(theta), math.cos(phi), math.sin(phi) * math.cos(theta))
                 r = radius
                 if jitter and rng is not None and 0 < j < seg_v:
-                    r = radius * (1 + rng.uniform(-jitter, jitter))
+                    drawn = radius * (1 + rng.uniform(-jitter, jitter))
+                    if i == 0:
+                        row_first_r = drawn
+                    # The seam column (i == seg_u) sits at the same position
+                    # as i == 0, so it must reuse that column's jitter draw:
+                    # an independent draw lands at a different radius and the
+                    # columns never weld, leaving a vertical slit down the
+                    # meridian. The draw is still consumed, so the rng stream
+                    # (and every later vertex in the cell) is unchanged.
+                    r = row_first_r if i == seg_u else drawn
                 p = (d[0] * r * squash[0], d[1] * r * squash[1], d[2] * r * squash[2])
                 tp, tn = f(p, d)
                 uv = (u0 + (u1 - u0) * i / seg_u, v0 + (v1 - v0) * (1 - j / seg_v))
